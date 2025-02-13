@@ -9,7 +9,7 @@ OneEnv は、Python の環境変数管理を簡潔かつ効率的にするライ
 
 ### **2.1 環境変数テンプレートの管理 (********`template`******** 機能)**
 
-- 各ライブラリが `@oneenv` デコレータを用いた関数を定義し、
+- 各ライブラリがOneEnvクラスを継承したサブクラスを作成し、
   必要な環境変数とその説明を提供。
 - OneEnv はそれらの関数を収集し、統合 `.env.example` ファイルを生成。
 - **設定項目をテキスト化し、********`.env.example`******** と同一の内容を取得可能。**
@@ -26,15 +26,25 @@ OneEnv は、Python の環境変数管理を簡潔かつ効率的にするライ
 
 ## **3. OneEnv のインターフェース**
 
-### **3.1 デコレータ API (********`@oneenv`********)**
-
-各ライブラリは、以下のように `@oneenv` を使用してテンプレートを定義できます。
+### **3.1.ベースクラス**
 
 ```python
-from oneenv import oneenv
+from abc import ABC
 
-@oneenv
-def mylib_template():
+class OneEnv(ABC):
+    @abstractmethod
+    def get_template(self)->dict:
+        pass
+
+```
+
+各ライブラリは、以下のようにOneEnvクラスを継承してテンプレートを定義できます。
+
+```python
+from oneenv import OneEnv
+
+class MyLib(OneEnv):
+    def get_template(self)->dict:
     return {
         "MYLIB_API_KEY": {
             "description": """このライブラリが利用するAPIキー
@@ -51,7 +61,9 @@ def mylib_template():
     }
 ```
 
-### **3.2 提供される関数一覧**
+### **3.2 oneenvのライブラリで提供される関数一覧**
+
+
 
 | **関数名**                                             | **説明**                                        |
 | --------------------------------------------------- | --------------------------------------------- |

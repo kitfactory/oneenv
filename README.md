@@ -8,7 +8,7 @@ Managing environment variables for multiple libraries can be tedious and error-p
 
 ## Features 🚀
 
-- **Template Collection**: Use the `@oneenv` decorator to declare environment variable templates.
+- **Template Collection**: Define environment variable templates by inheriting from the `OneEnv` class.
 - **Generated `.env.example`**: Automatically creates a consolidated `.env.example` file from registered templates.
 - **Diff Functionality**: Compare changes between different versions of your `.env.example` file.
 - **Duplicate Key Detection**: Identify duplicate environment variable definitions across modules.
@@ -51,49 +51,49 @@ Compare two `.env` files to see what has changed:
 oneenv diff previous.env current.env
 ```
 
-### Example: Using the `@oneenv` Decorator
+### Example: Using OneEnv Class
 
 Below is an example of how to use the `@oneenv` decorator in your code:
 
 ```python
-from oneenv import oneenv
+from oneenv import OneEnv
 
-@oneenv
-def my_env_template():
-    return {
-        "MY_API_KEY": {
-            "description": "API key for accessing the service.",
-            "default": "",
-            "required": True,
-            "choices": []
-        },
-        "MODE": {
-            "description": "Application mode setting.",
-            "default": "development",
-            "required": False,
-            "choices": ["development", "production"]
+class MyLibConfig(OneEnv):
+    def get_template(self) -> dict:
+        return {
+            "MY_API_KEY": {
+                "description": "API key for accessing the service.",
+                "default": "",
+                "required": True,
+                "choices": []
+            },
+            "MODE": {
+                "description": "Application mode setting.",
+                "default": "development",
+                "required": False,
+                "choices": ["development", "production"]
+            }
         }
-    }
 ```
 
-Place the above code within your library or application to automatically register environment variable templates.
+Place the above code within your library or application to define environment variable templates.
 
-**Note:** It is sufficient to only provide the `description` attribute in your template. Other attributes such as `default`, `required`, and `choices` are optional.
+**Note:** When implementing `get_template()`, it is sufficient to only provide the `description` attribute. Other attributes such as `default`, `required`, and `choices` are optional.
 
-### Minimal Example: Using Only `description`
+### Minimal Example: Simple Template Definition
 
-If you prefer the simplest setup, you can provide only the `description` attribute. For example:
+For the simplest setup, you can create a class with just the required description:
 
 ```python
-from oneenv import oneenv
+from oneenv import OneEnv
 
-@oneenv
-def minimal_template():
-    return {
-        "SIMPLE_VAR": {
-            "description": "A simple environment variable."
+class SimpleConfig(OneEnv):
+    def get_template(self) -> dict:
+        return {
+            "SIMPLE_VAR": {
+                "description": "A simple environment variable."
+            }
         }
-    }
 ```
 
 This minimal example works perfectly and emphasizes the ease of use. Additionally, since OneEnv is a wrapper around `python-dotenv`, it can also be used like dotenv to load environment variables.

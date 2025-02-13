@@ -3,6 +3,7 @@ import sys
 import os
 import pkgutil
 import importlib
+from abc import ABC, abstractmethod
 
 from dotenv import load_dotenv as dotenv_load_dotenv  # English: Import load_dotenv from python-dotenv.
                                                     # Japanese: python-dotenvからload_dotenvをインポートします。
@@ -30,6 +31,19 @@ def oneenv(func):
                                                        # Japanese: グローバルレジストリに関数を登録します。
     _TEMPLATE_REGISTRY.append(func)
     return func
+
+class OneEnv(ABC):
+    """
+    English: Abstract base class for defining environment variable templates.
+    Japanese: 環境変数テンプレートを定義するための抽象基本クラスです。
+    """
+    @abstractmethod
+    def get_template(self) -> dict:
+        """
+        English: Returns the template dictionary for environment variables.
+        Japanese: 環境変数のテンプレート辞書を返します。
+        """
+        pass
 
 def collect_templates():
     """
@@ -62,6 +76,22 @@ def collect_templates():
                 # English: Add a new key with its configuration and source.
                 # Japanese: 新規キーとして設定情報と定義元関数を追加します。
                 templates[key] = {"config": config, "sources": [func.__name__]}
+    # Collect templates from OneEnv subclasses
+    for subclass in OneEnv.__subclasses__():
+        try:
+            instance = subclass()  # Assume no-argument constructor
+        except Exception as e:
+            print(f"Error instantiating {subclass.__name__}: {e}")
+            continue
+        template_dict = instance.get_template()
+        for key, config in template_dict.items():
+            if "description" not in config:
+                raise ValueError(f"Missing 'description' for key {key} in {subclass.__name__}")
+            if key in templates:
+                if subclass.__name__ not in templates[key]["sources"]:
+                    templates[key]["sources"].append(subclass.__name__)
+            else:
+                templates[key] = {"config": config, "sources": [subclass.__name__]}
     return templates
 
 def report_duplicates():

@@ -10,6 +10,9 @@ from oneenv import (
     unset_key,
     dotenv_values,
     load_dotenv,
+    OneEnv,
+    collect_templates,
+    report_duplicates,
 )
 import oneenv as oneenv_module  # Used to clear the global registry
 
@@ -125,4 +128,116 @@ def test_load_dotenv(tmp_path):
         del os.environ["MY_LOAD_KEY"]
     result = load_dotenv(str(env_file))
     assert result is True
-    assert os.environ.get("MY_LOAD_KEY") == "loaded_value" 
+    assert os.environ.get("MY_LOAD_KEY") == "loaded_value"
+
+
+# English: Test class inheriting from OneEnv for testing purposes.
+# Japanese: テスト用のOneEnvを継承したクラスです。
+class TestLibTemplate(OneEnv):
+    def get_template(self) -> dict:
+        return {
+            "TEST_LIB_KEY": {
+                "description": "Test library key",
+                "default": "test_value",
+                "required": True
+            }
+        }
+
+
+# English: Another test class for testing duplicate keys.
+# Japanese: 重複キーのテスト用の別のクラスです。
+class AnotherTestTemplate(OneEnv):
+    def get_template(self) -> dict:
+        return {
+            "TEST_LIB_KEY": {  # Intentionally duplicate key
+                "description": "Duplicate key for testing",
+                "default": "another_value"
+            }
+        }
+
+
+@oneenv
+def test_template():
+    """
+    English: Test template function using the @oneenv decorator.
+    Japanese: @oneenvデコレータを使用したテストテンプレート関数です。
+    """
+    return {
+        "TEST_API_KEY": {
+            "description": "Test API key",
+            "default": "",
+            "required": True
+        }
+    }
+
+
+def test_oneenv_decorator():
+    """
+    English: Test that the @oneenv decorator correctly registers template functions.
+    Japanese: @oneenvデコレータがテンプレート関数を正しく登録することをテストします。
+    """
+    templates = collect_templates()
+    assert "TEST_API_KEY" in templates
+    assert templates["TEST_API_KEY"]["config"]["description"] == "Test API key"
+    assert templates["TEST_API_KEY"]["sources"] == ["test_template"]
+
+
+def test_oneenv_subclass():
+    """
+    English: Test that OneEnv subclasses are correctly processed.
+    Japanese: OneEnvサブクラスが正しく処理されることをテストします。
+    """
+    templates = collect_templates()
+    assert "TEST_LIB_KEY" in templates
+    assert templates["TEST_LIB_KEY"]["config"]["description"] == "Test library key"
+    assert "TestLibTemplate" in templates["TEST_LIB_KEY"]["sources"]
+
+
+def test_duplicate_keys():
+    """
+    English: Test that duplicate keys are properly handled and reported.
+    Japanese: 重複キーが適切に処理され、報告されることをテストします。
+    """
+    templates = collect_templates()
+    assert "TEST_LIB_KEY" in templates
+    assert len(templates["TEST_LIB_KEY"]["sources"]) == 2
+    assert "TestLibTemplate" in templates["TEST_LIB_KEY"]["sources"]
+    assert "AnotherTestTemplate" in templates["TEST_LIB_KEY"]["sources"]
+
+
+def test_template_generation():
+    """
+    English: Test that template generation includes both decorator and subclass templates.
+    Japanese: テンプレート生成がデコレータとサブクラスの両方のテンプレートを含むことをテストします。
+    """
+    env_content = template()
+    assert "TEST_API_KEY" in env_content
+    assert "TEST_LIB_KEY" in env_content
+    assert "Test API key" in env_content
+    assert "Test library key" in env_content
+
+
+def test_missing_description():
+    """
+    English: Test that templates without description raise ValueError.
+    Japanese: 説明のないテンプレートがValueErrorを発生させることをテストします。
+    """
+    class InvalidTemplate(OneEnv):
+        def get_template(self) -> dict:
+            return {
+                "INVALID_KEY": {
+                    "default": "value"  # Missing description
+                }
+            }
+    
+    with pytest.raises(ValueError):
+        collect_templates()
+
+
+def test_required_field():
+    """
+    English: Test that required field is properly reflected in template output.
+    Japanese: required フィールドがテンプレート出力に正しく反映されることをテストします。
+    """
+    env_content = template()
+    assert "# Required" in env_content 
