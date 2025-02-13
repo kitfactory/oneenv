@@ -1,4 +1,9 @@
 import difflib
+import sys
+import os
+import pkgutil
+import importlib
+
 from dotenv import load_dotenv as dotenv_load_dotenv  # English: Import load_dotenv from python-dotenv.
                                                     # Japanese: python-dotenvからload_dotenvをインポートします。
 from dotenv import dotenv_values as _dotenv_values  # English: Import dotenv_values from python-dotenv.
@@ -49,9 +54,10 @@ def collect_templates():
             if "description" not in config:
                 raise ValueError(f"Missing 'description' for key {key} in {func.__name__}")
             if key in templates:
-                # English: If key already exists, append the function name to the sources list.
-                # Japanese: 既にキーが存在する場合、定義元関数名リストに追加します。
-                templates[key]["sources"].append(func.__name__)
+                # Append the function name only if it hasn't been added already.
+                # 重複していなければ定義元関数名リストに追加します。
+                if func.__name__ not in templates[key]["sources"]:
+                    templates[key]["sources"].append(func.__name__)
             else:
                 # English: Add a new key with its configuration and source.
                 # Japanese: 新規キーとして設定情報と定義元関数を追加します。
@@ -84,6 +90,7 @@ def template():
     出力:
       - .env.example用の内容を持つ文字列を返します。
     """
+    import_templates()  # 自動探索で@oneenvデコレータが付与された全関数を登録します。
     templates_data = collect_templates()
     # Group the variables by their sorted tuple of sources
     groups = {}
@@ -287,4 +294,37 @@ def unset_key(dotenv_path, key_to_unset):
     # English: Write the filtered content back to the .env file.
     # Japanese: フィルタリングされた内容を.envファイルに書き戻します。
     with open(dotenv_path, 'w', encoding='utf-8') as file:
-        file.writelines(new_lines) 
+        file.writelines(new_lines)
+
+# 新規: sys.path 内のモジュールを自動探索・インポートする仕組み
+# New: Automatically discover and import modules in sys.path to trigger the @oneenv decorators.
+def import_templates():
+    """
+    English: Automatically discovers and imports modules within directories under the current working directory in sys.path.
+    This triggers the registration of all functions decorated with @oneenv.
+    Japanese: 現在の作業ディレクトリ以下にあるsys.path上のディレクトリ内のモジュールを自動探索・インポートします。
+    これにより、@oneenvデコレータが付与されたすべての関数が登録されることを保証します。
+    Output:
+      - A list of successfully imported module names.
+      - 登録に成功したモジュール名のリストを返します。
+    """
+
+    cwd = os.getcwd()  # English: Get the current working directory.
+                      # Japanese: 現在の作業ディレクトリを取得します。
+    imported_modules = []
+    for path_item in sys.path:
+        abs_path = os.path.abspath(path_item)
+        if not os.path.isdir(abs_path):
+            continue
+        # Restrict search to directories under the current working directory to avoid system libraries.
+        # 現在の作業ディレクトリ下にあるディレクトリに限定して探索し、システムライブラリを除外します。
+        if not abs_path.startswith(cwd):
+            continue
+        for finder, modname, ispkg in pkgutil.iter_modules([abs_path]):
+            try:
+                importlib.import_module(modname)
+                imported_modules.append(modname)
+            except Exception as e:
+                print(f"OneEnv import_templates: Could not import module {modname} from {abs_path}: {e}")
+    return imported_modules
+ 
