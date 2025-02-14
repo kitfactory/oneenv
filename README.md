@@ -42,97 +42,15 @@ pip install -e .
 Generate a consolidated `.env.example` file using the registered templates:
 
 ```bash
-oneenv template [-o OUTPUT_FILE]
+oneenv template [-o OUTPUT_FILE] [-d]
+```
+
+Use the `-d` or `--debug` option to see which modules and templates are discovered:
+
+```bash
+oneenv template -d
 ```
 
 ### Comparing Environment Files
 
-Compare two `.env` files to see what has changed:
-
-```bash
-oneenv diff previous.env current.env
-```
-
-### Example: Using the `@oneenv` Decorator
-
-Below is an example of how to use the `@oneenv` decorator in your code:
-
-```python
-from oneenv import oneenv
-
-@oneenv
-def my_env_template():
-    return {
-        "MY_API_KEY": {
-            "description": "API key for accessing the service.",
-            "default": "",
-            "required": True,
-            "choices": []
-        },
-        "MODE": {
-            "description": "Application mode setting.",
-            "default": "development",
-            "required": False,
-            "choices": ["development", "production"]
-        }
-    }
-```
-
-Place the above code within your library or application to define environment variable templates.
-
-**Note:** When implementing `get_template()`, it is sufficient to only provide the `description` attribute. Other attributes such as `default`, `required`, and `choices` are optional.
-
-### Minimal Example: Simple Template Definition
-
-For the simplest setup, you can create a function with just the required description:
-
-```python
-from oneenv import oneenv
-
-@oneenv
-def simple_config():
-    return {
-        "SIMPLE_VAR": {
-            "description": "A simple environment variable."
-        }
-    }
-```
-
-This minimal example works perfectly and emphasizes the ease of use. The `@oneenv` decorator automatically registers this template function for environment variable management.
-
-### Dotenv Integration 🔄
-
-OneEnv wraps [python-dotenv](https://github.com/theskumar/python-dotenv), so you can use all dotenv functions directly through OneEnv.
-
-#### Example: Loading Environment Variables Using OneEnv
-
-You can use OneEnv to load environment variables from a `.env` file just like you would with python-dotenv:
-
-```python
-from oneenv import load_dotenv, dotenv_values
-
-# Load environment variables into the current process
-load_dotenv()
-
-# Alternatively, get them as a dictionary
-env_vars = dotenv_values(".env")
-print(env_vars)
-```
-
-The integration allows you to manage your environment variables in one centralized place while benefiting from all the features of python-dotenv.
-
-## Running Tests 🧪
-
-Make sure your virtual environment is active, then run:
-
-```bash
-pytest tests
-```
-
-## Contributing 🤝
-
-Contributions are welcome! Feel free to open issues or submit pull requests on GitHub.
-
-## License ⚖️
-
-This project is licensed under the MIT License.
+Compare two `.env`

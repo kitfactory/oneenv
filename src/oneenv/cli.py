@@ -18,6 +18,7 @@ def main():
         help="Output file path (default: .env.example)",
         default=".env.example"
     )
+    template_parser.add_argument("-d", "--debug", action="store_true", help="Enable debug output")
 
     # Diff command
     diff_parser = subparsers.add_parser("diff", help="Show differences between two .env files")
@@ -34,7 +35,7 @@ def main():
 
     if args.command == "template":
         try:
-            generate_env_example(args.output)
+            generate_env_example(args.output, debug=args.debug)
             print(f"Generated template at: {args.output}")
         except Exception as e:
             print(f"Error generating template: {e}", file=sys.stderr)

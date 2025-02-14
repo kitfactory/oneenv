@@ -93,7 +93,7 @@ def report_duplicates():
             # Japanese: 重複するキーの警告を出力します。
             print(f"Warning: Duplicate key '{key}' defined in {', '.join(info['sources'])}")
 
-def template():
+def template(debug=False):
     """
     English: Generates the text content of the .env.example file based on collected templates.
              Each variable includes its description, source, and default value.
@@ -104,8 +104,24 @@ def template():
     出力:
       - .env.example用の内容を持つ文字列を返します。
     """
-    import_templates()  # 自動探索で@oneenvデコレータが付与された全関数を登録します。
+    if debug:
+        print("\nDiscovering modules and templates...")
+    
+    # Import all modules to discover @oneenv decorated functions
+    imported_modules = import_templates(debug)
+    if debug:
+        print(f"\nDiscovered non-standard modules: {len(imported_modules)}")
+        for module in imported_modules:
+            if not module.startswith('_') and not any(module.startswith(std) for std in ['os', 'sys', 'importlib', 'pkgutil']):
+                print(f"  - {module}")
+    
     templates_data = collect_templates()
+    if debug:
+        print(f"\nDiscovered @oneenv decorated functions: {len(_TEMPLATE_REGISTRY)}")
+        for func in _TEMPLATE_REGISTRY:
+            print(f"  - {func.__name__}")
+        print("")
+
     # Group the variables by their sorted tuple of sources
     groups = {}
     for key, info in templates_data.items():
@@ -312,7 +328,7 @@ def unset_key(dotenv_path, key_to_unset):
 
 # 新規: sys.path 内のモジュールを自動探索・インポートする仕組み
 # New: Automatically discover and import modules in sys.path to trigger the @oneenv decorators.
-def import_templates():
+def import_templates(debug=False):
     """
     English: Automatically discovers and imports modules within directories under the current working directory in sys.path.
     This triggers the registration of all functions decorated with @oneenv.
@@ -338,21 +354,28 @@ def import_templates():
             try:
                 importlib.import_module(modname)
                 imported_modules.append(modname)
+                if debug:
+                    print(f"Imported module: {modname}")
             except Exception as e:
                 print(f"OneEnv import_templates: Could not import module {modname} from {abs_path}: {e}")
     return imported_modules
 
-def import_all_modules(package):
+def import_all_modules(package, debug=False):
     """
     English: Import all modules in the given package.
     Japanese: 指定されたパッケージ内のすべてのモジュールをインポートします。
     """
     import pkgutil
     import importlib
+    imported = []
     if hasattr(package, '__path__'):
         for finder, module_name, ispkg in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
             try:
                 importlib.import_module(module_name)
+                imported.append(module_name)
+                if debug:
+                    print(f"Imported module: {module_name}")
             except Exception as e:
                 print(f"Error importing module {module_name}: {e}")
+    return imported
  

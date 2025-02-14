@@ -44,7 +44,7 @@ pip install -e .
 登録されたテンプレートを元に `.env.example` ファイルを生成します。
 
 ```bash
-oneenv template [-o OUTPUT_FILE]
+oneenv template [-o OUTPUT_FILE] [-d]
 ```
 
 ### 差分比較
