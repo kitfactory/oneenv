@@ -1,4 +1,4 @@
-# OneEnv 🌟
+# OneEnv 🌟　[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
 
 OneEnvは、Pythonアプリケーション向けの環境変数管理・生成ツールです。  
 `python-dotenv` をラップすることで、環境変数テンプレートや `.env` ファイルの取り扱いを簡素化します。
@@ -8,9 +8,11 @@ OneEnvは、Pythonアプリケーション向けの環境変数管理・生成�
 複数のライブラリがそれぞれ環境変数を利用する場合、各ライブラリごとに設定を管理するのは手間がかかり、エラーも発生しやすくなります。  
 OneEnvは、各ライブラリで定義された環境変数テンプレートを統合し、`.env.example` を自動生成することで、手作業を大幅に軽減し、プロジェクト全体で一貫性のある設定管理を実現します。
 
-## 特徴 ��
+## 特徴 🚀
 
-- **テンプレート収集**: `OneEnv` クラスを継承して環境変数のテンプレートを定義できます。
+- **テンプレート収集**: `@oneenv` デコレータを使用して環境変数のテンプレートを宣言できます。
+- **チーム開発に最適**: 複数の小規模ライブラリが独自の環境変数を管理する必要があるマイクロサービスやモジュラー開発に最適です。
+- **分散設定**: 各ライブラリが独自に環境変数を定義できるため、チーム開発での保守性とスケーラビリティが向上します。
 - **自動生成された `.env.example`**: 登録されたテンプレートから統合された `.env.example` ファイルを自動生成します。
 - **差分機能**: 異なるバージョンの `.env.example` ファイル間の変更点を比較できます。
 - **重複キー検出**: モジュール間で重複した環境変数の定義を特定できます。
@@ -53,72 +55,54 @@ oneenv template [-o OUTPUT_FILE]
 oneenv diff previous.env current.env
 ```
 
-### 例：OneEnvクラスの使い方
+### 例：`@oneenv` デコレータの使い方
 
-以下は、`OneEnv` クラスを継承して環境変数テンプレートを定義する例です。
+以下は、`@oneenv` デコレータを用いた環境変数テンプレートの宣言例です。
 
 ```python
-from oneenv import OneEnv
+from oneenv import oneenv
 
-class MyLibConfig(OneEnv):
-    def get_template(self) -> dict:
-        return {
-            "MY_API_KEY": {
-                "description": "サービスにアクセスするためのAPIキー。",
-                "default": "",
-                "required": True,
-                "choices": []
-            },
-            "MODE": {
-                "description": "アプリケーションモードの設定。",
-                "default": "development",
-                "required": False,
-                "choices": ["development", "production"]
-            }
+@oneenv
+def my_env_template():
+    return {
+        "MY_API_KEY": {
+            "description": "サービスにアクセスするためのAPIキー。",
+            "default": "",
+            "required": True,
+            "choices": []
+        },
+        "MODE": {
+            "description": "アプリケーションモードの設定。",
+            "default": "development",
+            "required": False,
+            "choices": ["development", "production"]
         }
+    }
 ```
 
-上記の例を参考に、コード内で `OneEnv` クラスを継承して環境変数テンプレートを定義できます。
+上記の例を参考に、コード内で `@oneenv` デコレータを使用して環境変数テンプレートを宣言できます。
 
-**注:** `get_template()` メソッドの実装では、`description` 属性だけでも十分です。他の属性（`default`、`required`、`choices`）は任意で記述できます。
+**注:** `@oneenv` デコレータの実装では、`description` 属性だけでも十分です。他の属性（`default`、`required`、`choices`）は任意で記述できます。
 
 ### 簡単な例：シンプルなテンプレート定義
 
 最もシンプルに利用する場合は、必須の `description` 属性だけを指定することも可能です。例えば:
 
 ```python
-from oneenv import OneEnv
+from oneenv import oneenv
 
-class SimpleConfig(OneEnv):
-    def get_template(self) -> dict:
-        return {
-            "SIMPLE_VAR": {
-                "description": "シンプルな環境変数です。"
-            }
+@oneenv
+def simple_config():
+    return {
+        "SIMPLE_VAR": {
+            "description": "シンプルな環境変数です。"
         }
     }
 ```
 
 ## dotenvとの連携 🔄
 
-OneEnvは、環境変数テンプレートの自動生成だけでなく、[python-dotenv](https://github.com/theskumar/python-dotenv) をラップすることで、環境変数を簡単に読み込むことも可能です。
-
-### 例：OneEnvを使って環境変数を読み込む
-
-OneEnvを利用すれば、`.env` ファイルから環境変数を読み込み、アプリケーションに反映させることができます。以下はその例です：
-
-```python
-from oneenv import load_dotenv, dotenv_values
-
-# 環境変数を現在のプロセスに読み込みます
-load_dotenv()
-
-# または、辞書形式で取得することも可能です
-env_vars = dotenv_values(".env")
-print(env_vars)
-```
-
-この連携により、環境変数の管理を一元化しながら、python-dotenvの機能をすべて活用できます。
+OneEnvは [python-dotenv](https://github.com/theskumar/python-dotenv) をラップしているため、dotenvの機能をそのまま利用できます。
 
 ## テストの実行 🧪
 

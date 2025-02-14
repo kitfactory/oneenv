@@ -1,4 +1,4 @@
-# OneEnv 🌟
+# OneEnv 🌟　[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
 
 OneEnv is an environment variable management and generation tool for Python applications. It wraps [`python-dotenv`](https://github.com/theskumar/python-dotenv) to simplify handling of environment variable templates and `.env` files.
 
@@ -8,7 +8,9 @@ Managing environment variables for multiple libraries can be tedious and error-p
 
 ## Features 🚀
 
-- **Template Collection**: Define environment variable templates by inheriting from the `OneEnv` class.
+- **Template Collection**: Use the `@oneenv` decorator to declare environment variable templates.
+- **Team-Friendly**: Perfect for microservices and modular development where multiple small libraries need to manage their own environment variables.
+- **Decentralized Configuration**: Each library can define its own environment variables independently, making it easy to maintain and scale in team development.
 - **Generated `.env.example`**: Automatically creates a consolidated `.env.example` file from registered templates.
 - **Diff Functionality**: Compare changes between different versions of your `.env.example` file.
 - **Duplicate Key Detection**: Identify duplicate environment variable definitions across modules.
@@ -51,29 +53,29 @@ Compare two `.env` files to see what has changed:
 oneenv diff previous.env current.env
 ```
 
-### Example: Using OneEnv Class
+### Example: Using the `@oneenv` Decorator
 
 Below is an example of how to use the `@oneenv` decorator in your code:
 
 ```python
-from oneenv import OneEnv
+from oneenv import oneenv
 
-class MyLibConfig(OneEnv):
-    def get_template(self) -> dict:
-        return {
-            "MY_API_KEY": {
-                "description": "API key for accessing the service.",
-                "default": "",
-                "required": True,
-                "choices": []
-            },
-            "MODE": {
-                "description": "Application mode setting.",
-                "default": "development",
-                "required": False,
-                "choices": ["development", "production"]
-            }
+@oneenv
+def my_env_template():
+    return {
+        "MY_API_KEY": {
+            "description": "API key for accessing the service.",
+            "default": "",
+            "required": True,
+            "choices": []
+        },
+        "MODE": {
+            "description": "Application mode setting.",
+            "default": "development",
+            "required": False,
+            "choices": ["development", "production"]
         }
+    }
 ```
 
 Place the above code within your library or application to define environment variable templates.
@@ -82,25 +84,25 @@ Place the above code within your library or application to define environment va
 
 ### Minimal Example: Simple Template Definition
 
-For the simplest setup, you can create a class with just the required description:
+For the simplest setup, you can create a function with just the required description:
 
 ```python
-from oneenv import OneEnv
+from oneenv import oneenv
 
-class SimpleConfig(OneEnv):
-    def get_template(self) -> dict:
-        return {
-            "SIMPLE_VAR": {
-                "description": "A simple environment variable."
-            }
+@oneenv
+def simple_config():
+    return {
+        "SIMPLE_VAR": {
+            "description": "A simple environment variable."
         }
+    }
 ```
 
-This minimal example works perfectly and emphasizes the ease of use. Additionally, since OneEnv is a wrapper around `python-dotenv`, it can also be used like dotenv to load environment variables.
+This minimal example works perfectly and emphasizes the ease of use. The `@oneenv` decorator automatically registers this template function for environment variable management.
 
 ### Dotenv Integration 🔄
 
-OneEnv is more than just an environment template generator. Being a wrapper around [python-dotenv](https://github.com/theskumar/python-dotenv), it also allows you to seamlessly load environment variables into your application.
+OneEnv wraps [python-dotenv](https://github.com/theskumar/python-dotenv), so you can use all dotenv functions directly through OneEnv.
 
 #### Example: Loading Environment Variables Using OneEnv
 

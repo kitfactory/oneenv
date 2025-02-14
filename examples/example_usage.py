@@ -30,38 +30,13 @@ def example_template():
         }
     }
 
-class MyLibTemplate(OneEnv):
-    """
-    English: Example subclass of OneEnv demonstrating template definition.
-    Japanese: OneEnvを継承したテンプレート定義の使用例です。
-    """
-    def get_template(self) -> dict:
-        """
-        English: Returns a dictionary of environment variable settings for MyLib.
-        Japanese: MyLib用の環境変数設定の辞書を返します。
-        """
-        return {
-            "MYLIB_API_KEY": {
-                "description": "This API key is used for accessing MyLib service.",
-                "default": "",
-                "required": True
-            },
-            "MYLIB_MODE": {
-                "description": "MyLib service mode setting.",
-                "default": "production",
-                "required": True,
-                "choices": ["development", "production"]
-            }
-        }
-
 def main():
     """
     English: Main function demonstrating the usage of the oneenv library.
     Japanese: oneenvライブラリの使用例を示すメイン関数です。
     """
-    # English: Generate the .env.example content using the registered templates from both
-    # the @oneenv-decorated functions and OneEnv subclasses.
-    # Japanese: @oneenvデコレータおよびOneEnvサブクラスから登録されたテンプレートを使用して、.env.example の内容を生成します。
+    # English: Generate the .env.example content using the registered templates from @oneenv-decorated functions.
+    # Japanese: @oneenvデコレータから登録されたテンプレートを使用して、.env.example の内容を生成します。
     env_example_content = template()
     
     # English: Print the generated .env.example content.

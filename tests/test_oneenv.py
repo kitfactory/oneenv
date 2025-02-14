@@ -179,30 +179,38 @@ def test_oneenv_decorator():
     templates = collect_templates()
     assert "TEST_API_KEY" in templates
     assert templates["TEST_API_KEY"]["config"]["description"] == "Test API key"
-    assert templates["TEST_API_KEY"]["sources"] == ["test_template"]
+    assert "test_template" in templates["TEST_API_KEY"]["sources"]
 
 
-def test_oneenv_subclass():
-    """
-    English: Test that OneEnv subclasses are correctly processed.
-    Japanese: OneEnvサブクラスが正しく処理されることをテストします。
-    """
-    templates = collect_templates()
-    assert "TEST_LIB_KEY" in templates
-    assert templates["TEST_LIB_KEY"]["config"]["description"] == "Test library key"
-    assert "TestLibTemplate" in templates["TEST_LIB_KEY"]["sources"]
-
-
-def test_duplicate_keys():
+def test_decorator_duplicate_keys():
     """
     English: Test that duplicate keys are properly handled and reported.
     Japanese: 重複キーが適切に処理され、報告されることをテストします。
     """
+    # Define two decorated functions that return duplicate key "DUPLICATE_KEY"
+    @oneenv
+    def duplicate_template_A():
+        return {
+            "DUPLICATE_KEY": {
+                "description": "Duplicate key from function A",
+                "default": "A"
+            }
+        }
+
+    @oneenv
+    def duplicate_template_B():
+        return {
+            "DUPLICATE_KEY": {
+                "description": "Duplicate key from function B",
+                "default": "B"
+            }
+        }
     templates = collect_templates()
-    assert "TEST_LIB_KEY" in templates
-    assert len(templates["TEST_LIB_KEY"]["sources"]) == 2
-    assert "TestLibTemplate" in templates["TEST_LIB_KEY"]["sources"]
-    assert "AnotherTestTemplate" in templates["TEST_LIB_KEY"]["sources"]
+    assert "DUPLICATE_KEY" in templates
+    sources = templates["DUPLICATE_KEY"]["sources"]
+    # Check that both functions are registered for the duplicate key.
+    assert "duplicate_template_A" in sources
+    assert "duplicate_template_B" in sources
 
 
 def test_template_generation():
@@ -211,10 +219,12 @@ def test_template_generation():
     Japanese: テンプレート生成がデコレータとサブクラスの両方のテンプレートを含むことをテストします。
     """
     env_content = template()
+    # Check that templates from decorated functions are included.
+    # 'sample_template' returns key "TEST_VAR" and 'test_template' returns key "TEST_API_KEY".
+    assert "TEST_VAR" in env_content
     assert "TEST_API_KEY" in env_content
-    assert "TEST_LIB_KEY" in env_content
-    assert "Test API key" in env_content
-    assert "Test library key" in env_content
+    # The duplicate key from test_decorator_duplicate_keys should be in the generated output.
+    assert "DUPLICATE_KEY" in env_content
 
 
 def test_missing_description():

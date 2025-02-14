@@ -76,22 +76,6 @@ def collect_templates():
                 # English: Add a new key with its configuration and source.
                 # Japanese: 新規キーとして設定情報と定義元関数を追加します。
                 templates[key] = {"config": config, "sources": [func.__name__]}
-    # Collect templates from OneEnv subclasses
-    for subclass in OneEnv.__subclasses__():
-        try:
-            instance = subclass()  # Assume no-argument constructor
-        except Exception as e:
-            print(f"Error instantiating {subclass.__name__}: {e}")
-            continue
-        template_dict = instance.get_template()
-        for key, config in template_dict.items():
-            if "description" not in config:
-                raise ValueError(f"Missing 'description' for key {key} in {subclass.__name__}")
-            if key in templates:
-                if subclass.__name__ not in templates[key]["sources"]:
-                    templates[key]["sources"].append(subclass.__name__)
-            else:
-                templates[key] = {"config": config, "sources": [subclass.__name__]}
     return templates
 
 def report_duplicates():
@@ -357,4 +341,18 @@ def import_templates():
             except Exception as e:
                 print(f"OneEnv import_templates: Could not import module {modname} from {abs_path}: {e}")
     return imported_modules
+
+def import_all_modules(package):
+    """
+    English: Import all modules in the given package.
+    Japanese: 指定されたパッケージ内のすべてのモジュールをインポートします。
+    """
+    import pkgutil
+    import importlib
+    if hasattr(package, '__path__'):
+        for finder, module_name, ispkg in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
+            try:
+                importlib.import_module(module_name)
+            except Exception as e:
+                print(f"Error importing module {module_name}: {e}")
  
