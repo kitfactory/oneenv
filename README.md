@@ -53,4 +53,89 @@ oneenv template -d
 
 ### Comparing Environment Files
 
-Compare two `.env`
+Compare changes between two `.env` files:
+
+```bash
+oneenv diff previous.env current.env
+```
+
+### Example: Using the `@oneenv` Decorator
+
+Here's an example of declaring environment variable templates using the `@oneenv` decorator:
+
+```python
+from oneenv import oneenv
+
+@oneenv
+def my_env_template():
+    return {
+        "MY_API_KEY": {
+            "description": "API key for accessing the service.",
+            "default": "",
+            "required": True,
+            "choices": []
+        },
+        "MODE": {
+            "description": "Application mode setting.",
+            "default": "development",
+            "required": False,
+            "choices": ["development", "production"]
+        }
+    }
+```
+
+🚨 **IMPORTANT WARNING**: 
+Template modules **MUST** be imported for the templates to be discovered. The `@oneenv` decorator works by scanning imported modules for decorated functions. If you don't import your template module, **your templates will not be included** in the generated `.env.example` file.
+
+Example structure:
+```
+your_package/
+  __init__.py      # Import your template modules here
+  template.py      # Define your @oneenv decorated functions here
+```
+
+Example `__init__.py`:
+```python
+from . import template  # Without this import, templates in template.py will NOT be discovered
+```
+
+You can use the `@oneenv` decorator in your code to declare environment variable templates as shown above.
+
+**Note:** When implementing the `@oneenv` decorator, only the `description` attribute is required. Other attributes (`default`, `required`, `choices`) are optional.
+
+### Simple Example: Basic Template Definition
+
+For the simplest use case, you can specify just the required `description` attribute:
+
+```python
+from oneenv import oneenv
+
+@oneenv
+def simple_config():
+    return {
+        "SIMPLE_VAR": {
+            "description": "A simple environment variable."
+        }
+    }
+```
+
+## Integration with dotenv 🔄
+
+OneEnv wraps [python-dotenv](https://github.com/theskumar/python-dotenv), so you can use all dotenv features directly.
+
+## Running Tests 🧪
+
+With your virtual environment activated, run:
+
+```bash
+pytest tests
+```
+
+## Contributing 🤝
+
+Contributions are welcome!  
+Feel free to open an issue or submit a Pull Request on GitHub.
+
+## License ⚖️
+
+This project is released under the MIT License.
