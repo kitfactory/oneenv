@@ -99,7 +99,11 @@ Example `__init__.py`:
 from . import template  # Without this import, templates in template.py will NOT be discovered
 ```
 
-You can use the `@oneenv` decorator in your code to declare environment variable templates as shown above.
+You can use the `@oneenv` decorator in your code to declare environment variable templates as shown above. After defining your templates and ensuring the modules are imported, you can generate the template file using:
+
+```bash
+oneenv template -o .env.template
+```
 
 **Note:** When implementing the `@oneenv` decorator, only the `description` attribute is required. Other attributes (`default`, `required`, `choices`) are optional.
 
