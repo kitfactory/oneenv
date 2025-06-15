@@ -1,26 +1,42 @@
 # OneEnv 🌟　[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
 
-OneEnvは、Pythonアプリケーション向けの環境変数管理・生成ツールです。  
-`python-dotenv` をラップすることで、環境変数テンプレートや `.env` ファイルの取り扱いを簡素化します。
+OneEnvは、Python アプリケーション向けの**革命的な環境変数管理ツール**です。インストールされた全パッケージから環境変数テンプレートを自動発見し、単一の `.env.example` ファイルに統合します - **手動設定は一切不要**！
 
-## OneEnvが解決する課題 🛠️
+## OneEnvが開発を劇的に簡単にする理由 🚀
 
-複数のライブラリがそれぞれ環境変数を利用する場合、各ライブラリごとに設定を管理するのは手間がかかり、エラーも発生しやすくなります。  
-OneEnvは、各ライブラリで定義された環境変数テンプレートを統合し、`.env.example` を自動生成することで、手作業を大幅に軽減し、プロジェクト全体で一貫性のある設定管理を実現します。
+**OneEnv導入前:**
+- 😓 プロジェクトごとに `.env.example` ファイルを手作業で作成
+- 😤 必要な環境変数を見つけるためドキュメントを漁る
+- 😱 新しいパッケージ導入時に重要な設定を見落とし
+- 🤯 プロジェクト間で一貫性のない環境変数フォーマット
 
-## 特徴 🚀
+**OneEnv導入後:**
+- ✨ **全パッケージから環境変数を自動発見**
+- 🎯 **1つのコマンド**で完全な `.env.example` ファイルを生成
+- 🔄 **重複変数をスマートにマージ**し、詳細な説明も統合
+- 📦 **プラグインエコシステム**でパッケージが独自テンプレートを提供
+- 🛡️ **Pydantic による型安全性**
 
-- **テンプレート収集**: `@oneenv` デコレータを使用して環境変数のテンプレートを宣言できます。
-- **チーム開発に最適**: 複数の小規模ライブラリが独自の環境変数を管理する必要があるマイクロサービスやモジュラー開発に最適です。
-- **分散設定**: 各ライブラリが独自に環境変数を定義できるため、チーム開発での保守性とスケーラビリティが向上します。
-- **自動生成された `.env.example`**: 登録されたテンプレートから統合された `.env.example` ファイルを自動生成します。
-- **差分機能**: 異なるバージョンの `.env.example` ファイル間の変更点を比較できます。
-- **重複キー検出**: モジュール間で重複した環境変数の定義を特定できます。
-- **コマンドラインツール**: ターミナルから `oneenv template` や `oneenv diff` などのコマンドで簡単に利用できます。
+## 革新的な機能 🌟
+
+### 🔌 **Entry-pointsプラグインシステム**
+パッケージが環境変数テンプレートを自動提供 - インストールするだけで使えます！
+
+### 🎨 **スマートな重複処理**
+複数のパッケージが同じ変数を定義していても、OneEnv が説明を統合し設定の一貫性を保ちます。
+
+### ⚡ **ゼロ設定セットアップ**
+OneEnv テンプレート対応パッケージをインストール？自動で発見されます。インポートも手動登録も不要。
+
+### 🔒 **型安全テンプレート**
+Pydantic モデルによる実行時検証とより良いエラーメッセージ。
+
+### 📋 **レガシーデコレータサポート**
+既存の `@oneenv` デコレータは新しいプラグインシステムと seamlessly 併用可能。
 
 ## 対応環境 🖥️
 
-- **Python**: 3.11以上
+- **Python**: 3.10以上
 - **対応OS**: Windows, macOS, Linux
 
 ## インストール 📦
@@ -37,27 +53,81 @@ pip install oneenv
 pip install -e .
 ```
 
-## 使い方 🚀
+## 超簡単な使い方 🎯
 
-### テンプレート生成
-
-登録されたテンプレートを元に `.env.example` ファイルを生成します。
-
+### ステップ1: OneEnv対応パッケージをインストール
 ```bash
-oneenv template [-o OUTPUT_FILE] [-d]
+pip install oneenv
+pip install django-oneenv-plugin  # 例: Django テンプレート
+pip install fastapi-oneenv-plugin # 例: FastAPI テンプレート
 ```
 
-### 差分比較
-
-2つの `.env` ファイル間の変更点を比較するには、以下のコマンドを実行します。
-
+### ステップ2: 環境変数テンプレートを生成
 ```bash
-oneenv diff previous.env current.env
+oneenv template
 ```
 
-### 例：`@oneenv` デコレータの使い方
+**これだけ！** 🎉 OneEnv が自動的にインストール済みパッケージから環境変数を発見し、完全な `.env.example` ファイルを作成します。
 
-以下は、`@oneenv` デコレータを用いた環境変数テンプレートの宣言例です。
+## 高度な使い方 🚀
+
+### 🔍 発見された内容を確認
+```bash
+oneenv template -d
+```
+以下の情報が表示されます：
+- 📦 発見されたプラグイン
+- 🔄 パッケージ間で重複している変数
+- ⚡ テンプレート生成プロセス
+
+### 📝 カスタム出力ファイル
+```bash
+oneenv template -o my-custom.env
+```
+
+### 🔄 環境ファイルの比較
+```bash
+oneenv diff old.env new.env
+```
+
+## パッケージ開発者向け: OneEnvプラグインの作成 📦
+
+### 方法1: モダンプラグインシステム（推奨） ⭐
+
+自動発見される環境変数テンプレートを作成：
+
+**1. テンプレート関数を作成:**
+```python
+# mypackage/templates.py
+def database_template():
+    """データベース設定テンプレート"""
+    return {
+        "DATABASE_URL": {
+            "description": "データベース接続URL\n例: postgresql://user:pass@localhost:5432/db",
+            "default": "sqlite:///app.db",
+            "required": True
+        },
+        "DB_POOL_SIZE": {
+            "description": "データベース接続プールサイズ",
+            "default": "10",
+            "required": False,
+            "choices": ["5", "10", "20", "50"]
+        }
+    }
+```
+
+**2. pyproject.toml に登録:**
+```toml
+[project.entry-points."oneenv.templates"]
+database = "mypackage.templates:database_template"
+redis = "mypackage.templates:redis_template"
+```
+
+**3. 完了！** 🎉 ユーザーがあなたのパッケージをインストールすると、OneEnv が自動的にテンプレートを発見します。
+
+### 方法2: レガシーデコレータシステム 📋
+
+後方互換性のため引き続きサポート:
 
 ```python
 from oneenv import oneenv
@@ -66,13 +136,12 @@ from oneenv import oneenv
 def my_env_template():
     return {
         "MY_API_KEY": {
-            "description": "サービスにアクセスするためのAPIキー。",
+            "description": "サービスにアクセスするためのAPIキー",
             "default": "",
-            "required": True,
-            "choices": []
+            "required": True
         },
         "MODE": {
-            "description": "アプリケーションモードの設定。",
+            "description": "アプリケーションモード設定",
             "default": "development",
             "required": False,
             "choices": ["development", "production"]
@@ -80,52 +149,137 @@ def my_env_template():
     }
 ```
 
-🚨 **重要な警告**: 
-テンプレートモジュールは**必ずインポートする必要があります**。`@oneenv` デコレータは、インポートされたモジュールをスキャンしてデコレート済みの関数を探します。テンプレートモジュールをインポートし忘れると、**そのテンプレートは `.env.example` ファイルに含まれません**。
+## スマート重複変数処理 🎨
 
-ディレクトリ構成例：
-```
-your_package/
-  __init__.py      # ここでテンプレートモジュールをインポート
-  template.py      # ここで@oneenvデコレータ付きの関数を定義
-```
+複数のパッケージが同じ環境変数を定義している場合、OneEnv が賢く統合します：
 
-`__init__.py` の例：
-```python
-from . import template  # このインポートがないと、template.pyのテンプレートは発見されません
-```
-
-上記の例を参考に、コード内で `@oneenv` デコレータを使用して環境変数テンプレートを宣言できます。テンプレートを定義し、モジュールがインポートされていることを確認したら、以下のコマンドを使用してテンプレートファイルを生成できます：
-
+**出力例:**
 ```bash
-oneenv template -o .env.template
+# Auto-generated by OneEnv
+
+# (Defined in: django-plugin, fastapi-plugin)
+# Django データベース接続URL
+# 例: postgresql://user:pass@localhost:5432/django_db
+# From fastapi-plugin:
+# FastAPI アプリケーション データベース接続
+# サポート: PostgreSQL, MySQL, SQLite
+# Required
+DATABASE_URL=sqlite:///django.db
+
+# (Defined in: redis-plugin)
+# Redis 接続URL
+# 例: redis://localhost:6379/0
+REDIS_URL=redis://localhost:6379/0
 ```
 
-**注:** `@oneenv` デコレータの実装では、`description` 属性だけでも十分です。他の属性（`default`、`required`、`choices`）は任意で記述できます。
+**動作原理:**
+- ✅ **単一エントリ**: 各変数は1回のみ表示
+- 📝 **説明の統合**: 全パッケージの説明が統合される
+- ⚙️ **最初が勝ち**: 設定値（default、required、choices）は最初のパッケージの設定を使用
+- 📋 **ソース追跡**: どのパッケージが各変数を定義しているかを表示
 
-### 簡単な例：シンプルなテンプレート定義
-
-最もシンプルに利用する場合は、必須の `description` 属性だけを指定することも可能です。例えば:
+## テンプレートフィールドリファレンス 📚
 
 ```python
+{
+    "変数名": {
+        "description": "この変数が何をするかの明確な説明",  # 必須
+        "default": "デフォルト値",                    # オプション: デフォルト値
+        "required": True,                           # オプション: 必須かどうか（デフォルト: False）
+        "choices": ["選択肢1", "選択肢2"]              # オプション: 有効な選択肢
+    }
+}
+```
+
+## 実際の使用例 🌍
+
+### Django + FastAPI + Redis プロジェクト
+```bash
+pip install oneenv django-oneenv fastapi-oneenv redis-oneenv
+oneenv template
+```
+
+**生成される .env.example:**
+```bash
+# Auto-generated by OneEnv
+
+# (Defined in: django-oneenv, fastapi-oneenv)
+# Django データベース接続URL
+# From fastapi-oneenv: FastAPI データベース接続
+# Required
+DATABASE_URL=sqlite:///django.db
+
+# (Defined in: redis-oneenv)
+# キャッシュとセッション用Redis接続
+REDIS_URL=redis://localhost:6379/0
+
+# (Defined in: django-oneenv)
+# セキュリティ用Django シークレットキー
+# Required
+SECRET_KEY=your-secret-key-here
+```
+
+### カスタムプロジェクトテンプレート
+```python
+# myproject/env_templates.py
 from oneenv import oneenv
 
 @oneenv
-def simple_config():
+def custom_project_config():
     return {
-        "SIMPLE_VAR": {
-            "description": "シンプルな環境変数です。"
+        "PROJECT_NAME": {
+            "description": "あなたの素晴らしいプロジェクトの名前",
+            "default": "My Awesome App",
+            "required": True
+        },
+        "ENVIRONMENT": {
+            "description": "デプロイメント環境",
+            "default": "development",
+            "choices": ["development", "staging", "production"]
         }
     }
 ```
 
 ## dotenvとの連携 🔄
 
-OneEnvは [python-dotenv](https://github.com/theskumar/python-dotenv) をラップしているため、dotenvの機能をそのまま利用できます。
+OneEnvは [python-dotenv](https://github.com/theskumar/python-dotenv) をラップしているため、dotenvの全機能をそのまま利用できます：
+
+```python
+from oneenv import load_dotenv, dotenv_values
+
+# 環境変数を読み込み
+load_dotenv()
+
+# 変数を辞書として取得
+config = dotenv_values(".env")
+```
+
+## v0.2.0の新機能 🆕
+
+### 🎉 革命的プラグインシステム
+- **Entry-points統合**: パッケージが自動的に環境変数テンプレートを提供
+- **スマート重複処理**: 複数パッケージからの変数をインテリジェントにマージ
+- **Pydantic型安全性**: クリアなエラーメッセージ付きの実行時検証
+- **ゼロ設定**: 自動発見 - インポートや手動登録は不要
+
+### 🔄 v0.1.xからの移行
+既存の `@oneenv` デコレータは変更なしで引き続き動作します！新しいプラグインシステムは現在のセットアップと並行動作します。
+
+**パッケージ開発者向け:** 自動発見のため `pyproject.toml` にentry-pointsの追加をご検討ください：
+```toml
+[project.entry-points."oneenv.templates"]
+myfeature = "mypackage.templates:my_template_function"
+```
+
+## OneEnvがゲームチェンジャーである理由 🎯
+
+- **🚫 探し回らない**: 環境変数が自動的にドキュメント化される
+- **⚡ ゼロセットアップ時間**: パッケージをインストール、1つのコマンド実行、完了
+- **🔄 同期を保つ**: パッケージ更新と共に環境設定も自動更新
+- **👥 チームの調和**: 全員が同じ環境セットアップを取得
+- **📦 エコシステムの成長**: パッケージ作者がより良い設定体験を提供可能
 
 ## テストの実行 🧪
-
-仮想環境が有効な状態で、以下のコマンドを実行してください。
 
 ```bash
 pytest tests
@@ -133,8 +287,7 @@ pytest tests
 
 ## コントリビュート 🤝
 
-コントリビュートは大歓迎です！  
-GitHub上でIssueを作成するか、Pull Requestをお送りください。
+コントリビュートは大歓迎です！GitHubでPull RequestやIssueをお気軽にお送りください。
 
 ## ライセンス ⚖️
 

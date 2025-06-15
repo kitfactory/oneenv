@@ -232,13 +232,13 @@ def test_missing_description():
     English: Test that templates without description raise ValueError.
     Japanese: 説明のないテンプレートがValueErrorを発生させることをテストします。
     """
-    class InvalidTemplate(OneEnv):
-        def get_template(self) -> dict:
-            return {
-                "INVALID_KEY": {
-                    "default": "value"  # Missing description
-                }
+    @oneenv
+    def invalid_template():
+        return {
+            "INVALID_KEY": {
+                "default": "value"  # Missing description
             }
+        }
     
     with pytest.raises(ValueError):
         collect_templates()

@@ -10,6 +10,15 @@ from dotenv import load_dotenv as dotenv_load_dotenv  # English: Import load_dot
 from dotenv import dotenv_values as _dotenv_values  # English: Import dotenv_values from python-dotenv.
                                                    # Japanese: python-dotenvからdotenv_valuesをインポートします。
 
+# Import new enhanced system
+from .core import (
+    template_enhanced, 
+    collect_templates_enhanced, 
+    report_duplicates_enhanced,
+    oneenv as oneenv_decorator_enhanced,
+    _oneenv_core
+)
+
 # Global registry for template functions  # English: Global registry for storing functions decorated with @oneenv.
                                            # Japanese: @oneenvデコレータが付与された関数を格納するグローバルレジストリ。
 _TEMPLATE_REGISTRY = []
@@ -27,9 +36,9 @@ def oneenv(func):
     出力:
       - 登録の副作用を持ち、元の関数を返します。
     """
-    # Register the function in the template registry  # English: Register the function in the global registry.
-                                                       # Japanese: グローバルレジストリに関数を登録します。
+    # Register the function in both legacy and new registries
     _TEMPLATE_REGISTRY.append(func)
+    oneenv_decorator_enhanced(func)
     return func
 
 class OneEnv(ABC):
@@ -49,116 +58,48 @@ def collect_templates():
     """
     English: Collects and combines environment variable templates from registered functions.
     Returns a dictionary mapping keys to their configuration and list of sources (function names).
+    Now enhanced with Pydantic models and entry-points support.
     Output format:
        { key: { "config": { ... }, "sources": [func_name, ...] }, ... }
     Japanese: 登録された関数から環境変数テンプレートを収集し、統合します。
     各キーに対して、その設定情報と定義元の関数名リストを含む辞書を返します。
+    Pydanticモデルとentry-pointsサポートで拡張されました。
     出力形式:
        { key: { "config": { ... }, "sources": [関数名, ...] }, ... }
     """
-    templates = {}  # English: Dictionary to hold combined templates.
-                    # Japanese: 統合されたテンプレートを格納する辞書。
-    for func in _TEMPLATE_REGISTRY:
-        # English: Call each registered function to obtain its template dictionary.
-        # Japanese: 登録されている各関数を呼び出して、テンプレート辞書を取得します。
-        template_dict = func()
-        for key, config in template_dict.items():
-            # English: Verify that the 'description' field is present.
-            # Japanese: 'description'フィールドが存在するか確認します。
-            if "description" not in config:
-                raise ValueError(f"Missing 'description' for key {key} in {func.__name__}")
-            if key in templates:
-                # Append the function name only if it hasn't been added already.
-                # 重複していなければ定義元関数名リストに追加します。
-                if func.__name__ not in templates[key]["sources"]:
-                    templates[key]["sources"].append(func.__name__)
-            else:
-                # English: Add a new key with its configuration and source.
-                # Japanese: 新規キーとして設定情報と定義元関数を追加します。
-                templates[key] = {"config": config, "sources": [func.__name__]}
-    return templates
+    # Use enhanced collection with both legacy and plugin support
+    return collect_templates_enhanced()
 
 def report_duplicates():
     """
     English: Reports duplicate environment variable keys across multiple templates.
              Prints warnings if duplicate keys are found.
+             Now enhanced with Pydantic models and entry-points support.
     Japanese: 複数のテンプレート間で重複している環境変数のキーを検出し、警告を出力します。
+             Pydanticモデルとentry-pointsサポートで拡張されました。
     """
-    templates = collect_templates()
-    # English: Iterate over each template to check for duplicates.
-    # Japanese: 各テンプレートについて重複キーがないか確認します。
-    for key, info in templates.items():
-        if len(info["sources"]) > 1:
-            # English: Print warning for duplicate key.
-            # Japanese: 重複するキーの警告を出力します。
-            print(f"Warning: Duplicate key '{key}' defined in {', '.join(info['sources'])}")
+    # Use enhanced duplicate reporting
+    report_duplicates_enhanced()
 
 def template(debug=False):
     """
     English: Generates the text content of the .env.example file based on collected templates.
              Each variable includes its description, source, and default value.
+             Now enhanced with Pydantic models and entry-points support.
     Output:
       - A string with the content for .env.example.
     Japanese: 収集したテンプレートに基づいて、.env.exampleファイルのテキスト内容を生成します。
              各環境変数は説明、定義元の関数、既定値を含みます。
+             Pydanticモデルとentry-pointsサポートで拡張されました。
     出力:
       - .env.example用の内容を持つ文字列を返します。
     """
-    if debug:
-        print("\nDiscovering modules and templates...")
-    
-    # Import all modules to discover @oneenv decorated functions
+    # Use the enhanced template generation system
+    # Import all modules to discover @oneenv decorated functions (legacy support)
     imported_modules = import_templates(debug)
-    if debug:
-        print(f"\nDiscovered non-standard modules: {len(imported_modules)}")
-        for module in imported_modules:
-            if not module.startswith('_') and not any(module.startswith(std) for std in ['os', 'sys', 'importlib', 'pkgutil']):
-                print(f"  - {module}")
     
-    templates_data = collect_templates()
-    if debug:
-        print(f"\nDiscovered @oneenv decorated functions: {len(_TEMPLATE_REGISTRY)}")
-        for func in _TEMPLATE_REGISTRY:
-            print(f"  - {func.__name__}")
-        print("")
-
-    # Group the variables by their sorted tuple of sources
-    groups = {}
-    for key, info in templates_data.items():
-        group_key = tuple(sorted(info["sources"]))
-        groups.setdefault(group_key, []).append((key, info["config"]))
-
-    lines = []
-    # Header indicating auto-generation
-    lines.append("# Auto-generated by OneEnv")
-    lines.append("")
-
-    # Process each group (same defined source)
-    for sources, items in groups.items():
-        sources_str = ", ".join(sources)
-        lines.append(f"# (Defined in: {sources_str})")
-        # Process each variable in the group
-        for key, config in items:
-            description = config.get("description", "")
-            default_value = config.get("default", "")
-            required_value = config.get("required", False)
-            choices_value = config.get("choices", None)
-            # Print description lines (English only)
-            for line in description.splitlines():
-                stripped_line = line.strip()
-                if stripped_line:
-                    lines.append(f"# {stripped_line}")
-            # If the variable is required, output a comment line for it
-            if required_value:
-                lines.append("# Required")
-            # If there are choices defined, output them as well
-            if choices_value:
-                lines.append(f"# Choices: {', '.join(choices_value)}")
-            # Print the variable assignment
-            lines.append(f"{key}={default_value}")
-            lines.append("")
-        lines.append("")
-    return "\n".join(lines)
+    # Use enhanced template generation with both legacy and plugin support
+    return template_enhanced(debug)
 
 def diff(previous_text, current_text):
     """
@@ -203,16 +144,18 @@ def diff(previous_text, current_text):
         i += 1
     return "\n".join(result_lines)
 
-def generate_env_example(output_path):
+def generate_env_example(output_path, debug=False):
     """
     English: Generates the .env.example file at the specified output path using the current templates.
     Input:
       - output_path: The file path where the .env.example should be written.
+      - debug: Enable debug output (default: False)
     Japanese: 現在のテンプレートを用いて、指定された出力パスに.env.exampleファイルを生成します。
     入力:
       - output_path: .env.exampleを書き込むファイルパス
+      - debug: デバッグ出力を有効にする（デフォルト: False）
     """
-    content = template()
+    content = template(debug=debug)
     # English: Write the generated content to the specified file.
     # Japanese: 生成された内容を指定されたファイルに書き込みます。
     with open(output_path, 'w', encoding='utf-8') as file:
