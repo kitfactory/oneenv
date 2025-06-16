@@ -182,22 +182,14 @@ class OneEnvCore:
     def _convert_template_result_to_model(self, template_result: Any, source: str) -> EnvTemplate:
         """
         Convert template function result to EnvTemplate model with validation
+        Supports both legacy format and new groups format
         テンプレート関数の結果をEnvTemplateモデルに変換（検証付き）
+        レガシー形式と新しいgroups形式の両方をサポート
         """
         if isinstance(template_result, dict):
-            # Legacy dictionary format
-            variables = {}
-            for var_name, var_config in template_result.items():
-                if isinstance(var_config, dict):
-                    # Convert dict to EnvVarConfig with validation
-                    variables[var_name] = dict_to_env_var_config(var_config)
-                elif isinstance(var_config, EnvVarConfig):
-                    # Already a model
-                    variables[var_name] = var_config
-                else:
-                    raise ValueError(f"Invalid config type for {var_name}: {type(var_config)}")
-            
-            return EnvTemplate(variables=variables, source=source)
+            # Use the enhanced template_function_to_env_template function
+            # which supports both legacy and groups format
+            return template_function_to_env_template(source, template_result)
         
         elif isinstance(template_result, EnvTemplate):
             # Already an EnvTemplate

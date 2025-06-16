@@ -99,23 +99,47 @@ Create environment templates that are automatically discovered:
 **1. Create your template function:**
 ```python
 # mypackage/templates.py
+
+# Option A: New Groups Format (Recommended) ⭐
 def database_template():
     """Database configuration template"""
     return {
+        "groups": {
+            "Database": {
+                "DATABASE_URL": {
+                    "description": "Database connection URL\nExample: postgresql://user:pass@localhost:5432/db",
+                    "default": "sqlite:///app.db",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "DB_POOL_SIZE": {
+                    "description": "Database connection pool size",
+                    "default": "10",
+                    "required": False,
+                    "choices": ["5", "10", "20", "50"],
+                    "importance": "important"
+                }
+            },
+            "Cache": {
+                "REDIS_URL": {
+                    "description": "Redis connection URL",
+                    "default": "redis://localhost:6379/0",
+                    "importance": "important"
+                }
+            }
+        }
+    }
+
+# Option B: Traditional Format (Still Supported)
+def legacy_template():
+    """Legacy format template"""
+    return {
         "DATABASE_URL": {
-            "description": "Database connection URL\nExample: postgresql://user:pass@localhost:5432/db",
+            "description": "Database connection URL",
             "default": "sqlite:///app.db",
             "required": True,
             "group": "Database",
             "importance": "critical"
-        },
-        "DB_POOL_SIZE": {
-            "description": "Database connection pool size",
-            "default": "10",
-            "required": False,
-            "choices": ["5", "10", "20", "50"],
-            "group": "Database",
-            "importance": "important"
         }
     }
 ```
@@ -197,6 +221,8 @@ REDIS_URL=redis://localhost:6379/0
 ```
 
 ### Enhanced Template (v0.3.0+)
+
+#### Traditional Enhanced Format
 ```python
 {
     "VARIABLE_NAME": {
@@ -206,6 +232,53 @@ REDIS_URL=redis://localhost:6379/0
         "choices": ["option1", "option2"], # Optional: Valid choices
         "group": "Category Name",        # NEW: Group for organization
         "importance": "critical"         # NEW: critical/important/optional
+    }
+}
+```
+
+#### New Groups Format (v0.3.1+) ⭐
+```python
+{
+    "groups": {
+        "Database": {
+            "DATABASE_URL": {
+                "description": "Database connection URL",
+                "default": "postgresql://localhost:5432/mydb",
+                "required": True,
+                "importance": "critical"
+            },
+            "DB_POOL_SIZE": {
+                "description": "Maximum database connections",
+                "default": "10",
+                "importance": "important"
+            }
+        },
+        "Security": {
+            "SECRET_KEY": {
+                "description": "Application secret key",
+                "required": True,
+                "importance": "critical"
+            }
+        }
+    }
+}
+```
+
+#### Mixed Format (Both Supported)
+```python
+{
+    # Direct variables (assigned to default group)
+    "GLOBAL_VAR": {
+        "description": "Global setting",
+        "group": "Application",  # Explicit group assignment
+        "importance": "critical"
+    },
+    
+    # Grouped variables
+    "groups": {
+        "Database": {
+            "DATABASE_URL": {...}
+        }
     }
 }
 ```
@@ -253,13 +326,50 @@ SECRET_KEY=your-secret-key-here
 REDIS_URL=redis://localhost:6379/0
 ```
 
-### Custom Project Templates (v0.3.0 Enhanced)
+### Custom Project Templates (v0.3.1 Enhanced)
 ```python
 # myproject/env_templates.py
 from oneenv import oneenv
 
+# New Groups Format (Recommended)
 @oneenv
 def custom_project_config():
+    return {
+        "groups": {
+            "Application": {
+                "PROJECT_NAME": {
+                    "description": "Name of your awesome project",
+                    "default": "My Awesome App",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "ENVIRONMENT": {
+                    "description": "Deployment environment",
+                    "default": "development",
+                    "choices": ["development", "staging", "production"],
+                    "importance": "important"
+                }
+            },
+            "Logging": {
+                "LOG_ROTATION_DAYS": {
+                    "description": "Number of days to keep log files",
+                    "default": "30",
+                    "required": False,
+                    "importance": "optional"
+                },
+                "LOG_LEVEL": {
+                    "description": "Application logging level",
+                    "default": "INFO",
+                    "choices": ["DEBUG", "INFO", "WARNING", "ERROR"],
+                    "importance": "optional"
+                }
+            }
+        }
+    }
+
+# Traditional Format (Still Supported)
+@oneenv
+def legacy_project_config():
     return {
         "PROJECT_NAME": {
             "description": "Name of your awesome project",
@@ -267,20 +377,6 @@ def custom_project_config():
             "required": True,
             "group": "Application",
             "importance": "critical"
-        },
-        "ENVIRONMENT": {
-            "description": "Deployment environment",
-            "default": "development",
-            "choices": ["development", "staging", "production"],
-            "group": "Application", 
-            "importance": "important"
-        },
-        "LOG_ROTATION_DAYS": {
-            "description": "Number of days to keep log files",
-            "default": "30",
-            "required": False,
-            "group": "Logging",
-            "importance": "optional"
         }
     }
 ```
@@ -299,12 +395,41 @@ load_dotenv()
 config = dotenv_values(".env")
 ```
 
-## What's New in v0.3.0 🆕
+## What's New in v0.3.1 🆕
 
-### 🎯 **Smart Organization & Prioritization**
-Environment variables are now intelligently organized by importance and grouped by category for maximum clarity:
+### 🏗️ **Revolutionary Groups Format**
+One function can now define multiple groups, making template organization incredibly flexible:
 
-- **📊 Grouping System**: Related variables are grouped together (Database, Security, Logging, etc.)
+```python
+@oneenv
+def complete_webapp_config():
+    return {
+        "groups": {
+            "Database": {
+                "DATABASE_URL": {...},
+                "DB_POOL_SIZE": {...}
+            },
+            "Security": {
+                "SECRET_KEY": {...},
+                "JWT_EXPIRY": {...}
+            },
+            "Cache": {
+                "REDIS_URL": {...}
+            }
+        }
+    }
+```
+
+**Benefits:**
+- **📦 Single Source**: One function defines all related variables
+- **🎯 Logical Grouping**: Variables are automatically organized by purpose
+- **🔄 Backward Compatible**: Traditional format still works perfectly
+- **🚀 Entry-Point Friendly**: Fewer entry-point registrations needed
+
+### 🎯 **Smart Organization & Prioritization (v0.3.0)**
+Environment variables are intelligently organized by importance and grouped by category:
+
+- **📊 Enhanced Grouping**: Both traditional and new groups format supported
 - **⚡ Importance Levels**: 
   - `critical`: Essential for application operation
   - `important`: Should be configured for production

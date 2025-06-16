@@ -99,23 +99,47 @@ oneenv diff old.env new.env
 **1. テンプレート関数を作成:**
 ```python
 # mypackage/templates.py
+
+# オプションA: 新しいグループ形式（推奨） ⭐
 def database_template():
     """データベース設定テンプレート"""
     return {
+        "groups": {
+            "Database": {
+                "DATABASE_URL": {
+                    "description": "データベース接続URL\n例: postgresql://user:pass@localhost:5432/db",
+                    "default": "sqlite:///app.db",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "DB_POOL_SIZE": {
+                    "description": "データベース接続プールサイズ",
+                    "default": "10",
+                    "required": False,
+                    "choices": ["5", "10", "20", "50"],
+                    "importance": "important"
+                }
+            },
+            "Cache": {
+                "REDIS_URL": {
+                    "description": "Redis接続URL",
+                    "default": "redis://localhost:6379/0",
+                    "importance": "important"
+                }
+            }
+        }
+    }
+
+# オプションB: 従来形式（引き続きサポート）
+def legacy_template():
+    """レガシー形式テンプレート"""
+    return {
         "DATABASE_URL": {
-            "description": "データベース接続URL\n例: postgresql://user:pass@localhost:5432/db",
+            "description": "データベース接続URL",
             "default": "sqlite:///app.db",
             "required": True,
             "group": "Database",
             "importance": "critical"
-        },
-        "DB_POOL_SIZE": {
-            "description": "データベース接続プールサイズ",
-            "default": "10",
-            "required": False,
-            "choices": ["5", "10", "20", "50"],
-            "group": "Database",
-            "importance": "important"
         }
     }
 ```
@@ -184,16 +208,71 @@ REDIS_URL=redis://localhost:6379/0
 
 ## テンプレートフィールドリファレンス 📚
 
+### 従来形式拡張 (v0.3.0+)
 ```python
 {
     "変数名": {
         "description": "この変数が何をするかの明確な説明",  # 必須
         "default": "デフォルト値",                    # オプション: デフォルト値
         "required": True,                           # オプション: 必須かどうか（デフォルト: False）
-        "choices": ["選択肢1", "選択肢2"]              # オプション: 有効な選択肢
+        "choices": ["選択肢1", "選択肢2"],              # オプション: 有効な選択肢
+        "group": "カテゴリ名",                        # 新機能: グループ化のため
+        "importance": "critical"                    # 新機能: critical/important/optional
     }
 }
 ```
+
+### 新しいグループ形式 (v0.3.1+) ⭐
+```python
+{
+    "groups": {
+        "Database": {
+            "DATABASE_URL": {
+                "description": "データベース接続URL",
+                "default": "postgresql://localhost:5432/mydb",
+                "required": True,
+                "importance": "critical"
+            },
+            "DB_POOL_SIZE": {
+                "description": "最大データベース接続数",
+                "default": "10",
+                "importance": "important"
+            }
+        },
+        "Security": {
+            "SECRET_KEY": {
+                "description": "アプリケーションシークレットキー",
+                "required": True,
+                "importance": "critical"
+            }
+        }
+    }
+}
+```
+
+### 混合形式（両方サポート）
+```python
+{
+    # 直接変数（デフォルトグループに割り当て）
+    "GLOBAL_VAR": {
+        "description": "グローバル設定",
+        "group": "Application",  # 明示的グループ割り当て
+        "importance": "critical"
+    },
+    
+    # グループ化された変数
+    "groups": {
+        "Database": {
+            "DATABASE_URL": {...}
+        }
+    }
+}
+```
+
+### 重要度レベル
+- **`critical`**: アプリケーション動作に必須の設定
+- **`important`**: 本番環境で設定すべき項目
+- **`optional`**: 細かい調整設定（デフォルトで十分）
 
 ## 実際の使用例 🌍
 
@@ -223,23 +302,57 @@ REDIS_URL=redis://localhost:6379/0
 SECRET_KEY=your-secret-key-here
 ```
 
-### カスタムプロジェクトテンプレート
+### カスタムプロジェクトテンプレート (v0.3.1拡張)
 ```python
 # myproject/env_templates.py
 from oneenv import oneenv
 
+# 新しいグループ形式（推奨）
 @oneenv
 def custom_project_config():
+    return {
+        "groups": {
+            "Application": {
+                "PROJECT_NAME": {
+                    "description": "あなたの素晴らしいプロジェクトの名前",
+                    "default": "My Awesome App",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "ENVIRONMENT": {
+                    "description": "デプロイメント環境",
+                    "default": "development",
+                    "choices": ["development", "staging", "production"],
+                    "importance": "important"
+                }
+            },
+            "Logging": {
+                "LOG_ROTATION_DAYS": {
+                    "description": "ログファイルを保持する日数",
+                    "default": "30",
+                    "required": False,
+                    "importance": "optional"
+                },
+                "LOG_LEVEL": {
+                    "description": "アプリケーションログレベル",
+                    "default": "INFO",
+                    "choices": ["DEBUG", "INFO", "WARNING", "ERROR"],
+                    "importance": "optional"
+                }
+            }
+        }
+    }
+
+# 従来形式（引き続きサポート）
+@oneenv
+def legacy_project_config():
     return {
         "PROJECT_NAME": {
             "description": "あなたの素晴らしいプロジェクトの名前",
             "default": "My Awesome App",
-            "required": True
-        },
-        "ENVIRONMENT": {
-            "description": "デプロイメント環境",
-            "default": "development",
-            "choices": ["development", "staging", "production"]
+            "required": True,
+            "group": "Application",
+            "importance": "critical"
         }
     }
 ```
@@ -258,9 +371,40 @@ load_dotenv()
 config = dotenv_values(".env")
 ```
 
-## v0.2.0の新機能 🆕
+## v0.3.1の新機能 🆕
 
-### 🎉 革命的プラグインシステム
+### 🏗️ **革命的グループ形式**
+1つの関数で複数のグループを定義でき、テンプレートの整理が非常に柔軟になりました：
+
+```python
+@oneenv
+def complete_webapp_config():
+    return {
+        "groups": {
+            "Database": {
+                "DATABASE_URL": {...},
+                "DB_POOL_SIZE": {...}
+            },
+            "Security": {
+                "SECRET_KEY": {...},
+                "JWT_EXPIRY": {...}
+            },
+            "Cache": {
+                "REDIS_URL": {...}
+            }
+        }
+    }
+```
+
+**メリット:**
+- **📦 単一ソース**: 1つの関数で関連する全変数を定義
+- **🎯 論理的グループ化**: 変数が自動的に目的別に整理される
+- **🔄 後方互換性**: 従来形式も完全に動作
+- **🚀 Entry-Point フレンドリー**: entry-point登録数を削減
+
+## 過去のアップデート
+
+### v0.2.0: 革命的プラグインシステム
 - **Entry-points統合**: パッケージが自動的に環境変数テンプレートを提供
 - **スマート重複処理**: 複数パッケージからの変数をインテリジェントにマージ
 - **Pydantic型安全性**: クリアなエラーメッセージ付きの実行時検証

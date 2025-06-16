@@ -256,15 +256,44 @@ def env_var_config_to_dict(config: EnvVarConfig) -> Dict[str, Any]:
     return result
 
 
-def template_function_to_env_template(func_name: str, template_dict: Dict[str, Dict[str, Any]]) -> EnvTemplate:
+def template_function_to_env_template(func_name: str, template_dict: Dict[str, Any]) -> EnvTemplate:
     """
-    Convert legacy template function result to EnvTemplate model
-    レガシーのテンプレート関数結果をEnvTemplateモデルに変換
+    Convert template function result to EnvTemplate model
+    Support both legacy format and new groups format
+    テンプレート関数結果をEnvTemplateモデルに変換
+    レガシー形式と新しいgroups形式の両方をサポート
     """
-    variables = {
-        var_name: dict_to_env_var_config(var_config)
-        for var_name, var_config in template_dict.items()
-    }
+    variables = {}
+    
+    # Check if this is the new groups format
+    if "groups" in template_dict:
+        # Process grouped variables
+        groups_data = template_dict["groups"]
+        if isinstance(groups_data, dict):
+            for group_name, group_vars in groups_data.items():
+                if isinstance(group_vars, dict):
+                    for var_name, var_config in group_vars.items():
+                        if isinstance(var_config, dict):
+                            # Add group to config if not already specified
+                            config_copy = var_config.copy()
+                            if "group" not in config_copy:
+                                config_copy["group"] = group_name
+                            variables[var_name] = dict_to_env_var_config(config_copy)
+                        else:
+                            raise ValueError(f"Invalid variable config type for {var_name} in group {group_name}")
+                else:
+                    raise ValueError(f"Invalid group data type for group {group_name}")
+        else:
+            raise ValueError("Groups data must be a dictionary")
+    
+    # Process any variables defined outside of groups (legacy format or mixed)
+    for key, value in template_dict.items():
+        if key != "groups" and isinstance(value, dict):
+            # This is a variable definition
+            variables[key] = dict_to_env_var_config(value)
+    
+    if not variables:
+        raise ValueError("Template must contain at least one environment variable")
     
     return EnvTemplate(
         variables=variables,

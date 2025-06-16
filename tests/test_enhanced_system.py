@@ -387,5 +387,214 @@ class TestEnhancedIntegration:
         assert "(Defined in: api_template, web_template)" in content
 
 
+class TestGroupsFormat:
+    """Test the new groups format functionality"""
+    
+    def setUp(self):
+        """Set up each test by clearing the registry"""
+        from oneenv.core import _oneenv_core
+        _oneenv_core._legacy_registry.clear()
+    
+    def test_basic_groups_format(self):
+        """Test basic groups format parsing"""
+        from oneenv.models import template_function_to_env_template
+        
+        template_dict = {
+            "groups": {
+                "Database": {
+                    "DATABASE_URL": {
+                        "description": "Database connection URL",
+                        "default": "sqlite:///app.db",
+                        "required": True,
+                        "importance": "critical"
+                    },
+                    "DB_POOL_SIZE": {
+                        "description": "Database connection pool size",
+                        "default": "10",
+                        "importance": "important"
+                    }
+                },
+                "Cache": {
+                    "REDIS_URL": {
+                        "description": "Redis connection URL",
+                        "default": "redis://localhost:6379/0",
+                        "importance": "important"
+                    }
+                }
+            }
+        }
+        
+        template = template_function_to_env_template("test_groups", template_dict)
+        
+        # Should have 3 variables
+        assert len(template.variables) == 3
+        assert "DATABASE_URL" in template.variables
+        assert "DB_POOL_SIZE" in template.variables
+        assert "REDIS_URL" in template.variables
+        
+        # Variables should have correct groups
+        assert template.variables["DATABASE_URL"].group == "Database"
+        assert template.variables["DB_POOL_SIZE"].group == "Database"
+        assert template.variables["REDIS_URL"].group == "Cache"
+        
+        # Variables should have correct importance
+        assert template.variables["DATABASE_URL"].importance == "critical"
+        assert template.variables["DB_POOL_SIZE"].importance == "important"
+        assert template.variables["REDIS_URL"].importance == "important"
+    
+    def test_mixed_format(self):
+        """Test mixed format with both groups and direct variables"""
+        from oneenv.models import template_function_to_env_template
+        
+        template_dict = {
+            "GLOBAL_VAR": {
+                "description": "Global configuration variable",
+                "default": "global_value",
+                "group": "Application",
+                "importance": "critical"
+            },
+            "groups": {
+                "Database": {
+                    "DATABASE_URL": {
+                        "description": "Database connection URL",
+                        "default": "sqlite:///app.db",
+                        "required": True,
+                        "importance": "critical"
+                    }
+                }
+            }
+        }
+        
+        template = template_function_to_env_template("test_mixed", template_dict)
+        
+        # Should have 2 variables
+        assert len(template.variables) == 2
+        assert "GLOBAL_VAR" in template.variables
+        assert "DATABASE_URL" in template.variables
+        
+        # GLOBAL_VAR should keep its explicit group
+        assert template.variables["GLOBAL_VAR"].group == "Application"
+        
+        # DATABASE_URL should get group from groups structure
+        assert template.variables["DATABASE_URL"].group == "Database"
+    
+    def test_groups_format_decorator_integration(self):
+        """Test groups format with @oneenv decorator"""
+        self.setUp()
+        
+        # Clear any existing registry to avoid interference from example_usage.py or other tests
+        from oneenv.core import clear_template_registry
+        clear_template_registry()
+        
+        @oneenv
+        def multi_group_template():
+            return {
+                "groups": {
+                    "Database": {
+                        "DATABASE_URL": {
+                            "description": "Primary database connection",
+                            "default": "postgresql://localhost:5432/mydb",
+                            "required": True,
+                            "importance": "critical"
+                        },
+                        "DB_MAX_CONNECTIONS": {
+                            "description": "Maximum database connections",
+                            "default": "100",
+                            "importance": "important"
+                        }
+                    },
+                    "Security": {
+                        "SECRET_KEY": {
+                            "description": "Application secret key",
+                            "default": "your-secret-key-here",
+                            "required": True,
+                            "importance": "critical"
+                        },
+                        "JWT_EXPIRY": {
+                            "description": "JWT token expiry time",
+                            "default": "3600",
+                            "importance": "optional"
+                        }
+                    }
+                }
+            }
+        
+        # Generate template content without plugin discovery
+        from oneenv.core import _oneenv_core
+        content = _oneenv_core.generate_env_example_content(
+            discover_plugins=False,  # Don't discover entry-point plugins
+            discover_legacy=True,    # Only use our test template
+            debug=False
+        )
+        
+        # Should contain all variables
+        assert "DATABASE_URL=postgresql://localhost:5432/mydb" in content
+        assert "DB_MAX_CONNECTIONS=100" in content
+        assert "SECRET_KEY=your-secret-key-here" in content
+        assert "JWT_EXPIRY=3600" in content
+        
+        # Should be organized by importance with group headers
+        assert "# ========== CRITICAL:" in content
+        assert "# ========== IMPORTANT:" in content
+        assert "# ========== OPTIONAL:" in content
+        
+        # Should have group headers within importance sections
+        assert "# ----- Database -----" in content
+        assert "# ----- Security -----" in content
+    
+    def test_groups_format_validation_errors(self):
+        """Test validation errors for malformed groups format"""
+        from oneenv.models import template_function_to_env_template
+        
+        # Test invalid groups data type
+        with pytest.raises(ValueError, match="Groups data must be a dictionary"):
+            template_function_to_env_template("test", {
+                "groups": "invalid"
+            })
+        
+        # Test invalid group data type
+        with pytest.raises(ValueError, match="Invalid group data type"):
+            template_function_to_env_template("test", {
+                "groups": {
+                    "Database": "invalid"
+                }
+            })
+        
+        # Test invalid variable config type
+        with pytest.raises(ValueError, match="Invalid variable config type"):
+            template_function_to_env_template("test", {
+                "groups": {
+                    "Database": {
+                        "DATABASE_URL": "invalid"
+                    }
+                }
+            })
+        
+        # Test empty template
+        with pytest.raises(ValueError, match="Template must contain at least one"):
+            template_function_to_env_template("test", {})
+    
+    def test_groups_format_with_existing_group_override(self):
+        """Test that explicit group in variable config overrides groups structure"""
+        from oneenv.models import template_function_to_env_template
+        
+        template_dict = {
+            "groups": {
+                "Database": {
+                    "DATABASE_URL": {
+                        "description": "Database connection URL",
+                        "default": "sqlite:///app.db",
+                        "group": "CustomGroup"  # This should override "Database"
+                    }
+                }
+            }
+        }
+        
+        template = template_function_to_env_template("test", template_dict)
+        
+        # Variable should keep its explicit group, not inherit from groups structure
+        assert template.variables["DATABASE_URL"].group == "CustomGroup"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
