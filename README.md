@@ -105,13 +105,17 @@ def database_template():
         "DATABASE_URL": {
             "description": "Database connection URL\nExample: postgresql://user:pass@localhost:5432/db",
             "default": "sqlite:///app.db",
-            "required": True
+            "required": True,
+            "group": "Database",
+            "importance": "critical"
         },
         "DB_POOL_SIZE": {
             "description": "Database connection pool size",
             "default": "10",
             "required": False,
-            "choices": ["5", "10", "20", "50"]
+            "choices": ["5", "10", "20", "50"],
+            "group": "Database",
+            "importance": "important"
         }
     }
 ```
