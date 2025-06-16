@@ -1,8 +1,13 @@
-# OneEnv 🌟　[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
+# OneEnv 🌟
 
-OneEnv is a **revolutionary environment variable management tool** for Python applications that makes configuration management **incredibly simple**. It automatically discovers and consolidates environment variable templates from all your installed packages into a single `.env.example` file - **no manual configuration required**!
+[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
 
-## Why OneEnv Makes Your Life Easier 🚀
+**The new standard for Python environment variable management.**
+
+OneEnv automatically discovers and consolidates environment variable templates from all your installed packages
+into a single `.env.example` file. No manual configuration required.
+
+## Why OneEnv Streamlines Development 🚀
 
 **Before OneEnv:**
 - 😓 Manual creation of `.env.example` files for each project
@@ -17,7 +22,7 @@ OneEnv is a **revolutionary environment variable management tool** for Python ap
 - 📦 **Plugin ecosystem** where packages provide their own templates
 - 🛡️ **Type safety** with Pydantic validation
 
-## Revolutionary Features 🌟
+## Key Features 🌟
 
 ### 🔌 **Plugin System with Entry-points**
 Packages can automatically provide their environment variable templates - just install and use!
@@ -32,7 +37,7 @@ Install a package with OneEnv templates? They're automatically discovered. No im
 Built with Pydantic models for runtime validation and better error messages.
 
 ### 📋 **Legacy Decorator Support**
-Existing `@oneenv` decorators continue to work seamlessly alongside the new plugin system.
+Existing `@oneenv` decorators continue to work fully compatible with the new plugin system.
 
 ## Supported Environments 🖥️
 
@@ -56,6 +61,7 @@ pip install -e .
 ## Super Simple Usage 🎯
 
 ### Step 1: Install Packages with OneEnv Support
+
 ```bash
 pip install oneenv
 pip install django-oneenv-plugin  # Example: Django templates
@@ -63,6 +69,7 @@ pip install fastapi-oneenv-plugin # Example: FastAPI templates
 ```
 
 ### Step 2: Generate Your Environment Template
+
 ```bash
 oneenv template
 ```
@@ -72,22 +79,139 @@ oneenv template
 ## Advanced Usage 🚀
 
 ### 🔍 See What's Discovered
+
 ```bash
 oneenv template -d
 ```
+
 This shows you:
 - 📦 Which plugins were discovered
 - 🔄 Which variables are duplicated across packages
 - ⚡ Template generation process
 
 ### 📝 Custom Output File
+
 ```bash
 oneenv template -o my-custom.env
 ```
 
 ### 🔄 Compare Environment Files
+
 ```bash
 oneenv diff old.env new.env
+```
+
+## Production Use Cases 🔄
+
+### CI/CD Integration
+
+Integrate OneEnv into your CI/CD pipeline to maintain environment template consistency automatically.
+
+#### GitHub Actions Example
+
+```yaml
+# .github/workflows/env-check.yml
+name: Environment Template Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-env-template:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install oneenv
+        pip install -r requirements.txt
+    
+    - name: Generate latest .env.example
+      run: oneenv template -o .env.example.new
+    
+    - name: Check for differences
+      run: |
+        if ! diff -q .env.example .env.example.new > /dev/null; then
+          echo "❌ .env.example is outdated!"
+          echo "Run 'oneenv template' to update it."
+          oneenv diff .env.example .env.example.new
+          exit 1
+        else
+          echo "✅ .env.example is up to date!"
+        fi
+```
+
+#### Auto-update Workflow
+
+```yaml
+# .github/workflows/env-update.yml
+name: Auto-update Environment Template
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Every Monday at 2:00 AM
+  workflow_dispatch:
+
+jobs:
+  update-env-template:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install oneenv
+        pip install -r requirements.txt
+    
+    - name: Update .env.example
+      run: oneenv template
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update .env.example template"
+        title: "Auto-update environment template"
+        body: |
+          📝 Environment template has been automatically updated.
+          
+          Changes detected in installed packages or their environment variable definitions.
+          Please review the changes before merging.
+        branch: chore/update-env-template
+```
+
+### Docker Integration
+
+```dockerfile
+# Dockerfile
+FROM python:3.10
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Generate environment template using OneEnv
+RUN pip install oneenv && oneenv template
+
+COPY . .
+
+CMD ["python", "app.py"]
 ```
 
 ## For Package Developers: Creating OneEnv Plugins 📦
@@ -97,6 +221,7 @@ oneenv diff old.env new.env
 Create environment templates that are automatically discovered:
 
 **1. Create your template function:**
+
 ```python
 # mypackage/templates.py
 
@@ -145,13 +270,16 @@ def legacy_template():
 ```
 
 **2. Register in pyproject.toml:**
+
 ```toml
 [project.entry-points."oneenv.templates"]
 database = "mypackage.templates:database_template"
 redis = "mypackage.templates:redis_template"
 ```
 
-**3. That's it!** 🎉 When users install your package, OneEnv automatically discovers your templates.
+**3. That's it!** 🎉
+
+When users install your package, OneEnv automatically discovers your templates.
 
 ### Method 2: Legacy Decorator System 📋
 
@@ -397,7 +525,7 @@ config = dotenv_values(".env")
 
 ## What's New in v0.3.1 🆕
 
-### 🏗️ **Revolutionary Groups Format**
+### 🏗️ **New Groups Format**
 One function can now define multiple groups, making template organization incredibly flexible:
 
 ```python
@@ -480,19 +608,98 @@ All existing templates work unchanged! New features use sensible defaults:
 
 ## Previous Updates
 
-### v0.2.0: Revolutionary Plugin System
+### v0.2.0: New Plugin System
 - **Entry-points Integration**: Packages automatically provide environment variable templates
 - **Smart Duplicate Handling**: Intelligent merging of variables from multiple packages
 - **Pydantic Type Safety**: Runtime validation with clear error messages
 - **Zero Configuration**: Automatic discovery - no imports or manual registration needed
 
-## Why OneEnv is Game-Changing 🎯
+## Comparison with Other Tools 📊
+
+| Feature | OneEnv | python-dotenv | django-environ | pydantic-settings | dynaconf |
+|---------|--------|---------------|----------------|-------------------|-----------|
+| **Automatic Template Discovery** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Plugin System** | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Duplicate Variable Merging** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Type Safety** | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **CI/CD Integration** | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ |
+| **Config File Generation** | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Framework Dependency** | ❌ | ❌ | Django | ❌ | ❌ |
+| **Learning Curve** | Low | Low | Medium | Medium | High |
+| **Ecosystem** | Growing | Mature | Mature | Growing | Mature |
+
+### Where OneEnv Excels
+
+- **🔍 Complete Automation**: Automatically discovers settings from installed packages
+- **🎯 Zero Configuration**: No manual template creation needed
+- **🔄 Dynamic Updates**: Automatically updates when new packages are added
+- **🤝 Ecosystem Integration**: Package developers can directly provide configuration templates
+
+## OneEnv Advantages 🎯
 
 - **🚫 No more hunting**: Environment variables are automatically documented
 - **⚡ Zero setup time**: Install packages, run one command, done
 - **🔄 Stay synchronized**: Environment configs update automatically with package updates
 - **👥 Team harmony**: Everyone gets the same environment setup
 - **📦 Ecosystem growth**: Package authors can provide better configuration experiences
+
+## FAQ & Troubleshooting 🔧
+
+### Common Questions
+
+#### Q. How to exclude specific variables from templates?
+```python
+# In your plugin, use conditional logic
+@oneenv
+def my_template():
+    import os
+    if os.getenv('EXCLUDE_SENSITIVE_VARS'):
+        return {}  # Return empty dict to exclude
+    
+    return {
+        "SENSITIVE_VAR": {
+            "description": "Sensitive information",
+            "required": True
+        }
+    }
+```
+
+#### Q. Using different templates for multiple projects?
+Run `oneenv template` in each project directory. It generates templates based on the packages installed in that specific environment.
+
+#### Q. Plugin not being discovered?
+```bash
+# Check installed plugins
+oneenv template -d
+
+# Verify package installation
+pip list | grep oneenv
+```
+
+#### Q. Unicode issues on Windows PowerShell?
+```powershell
+# Set UTF-8 encoding
+$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
+oneenv template
+```
+
+#### Q. How to change duplicate variable priority?
+Currently, the first discovered package's settings take precedence. To change priority, adjust the Entry-Points registration order in `pyproject.toml`.
+
+### Troubleshooting
+
+#### Plugin Not Found
+1. Verify package is correctly installed
+2. Check Entry-Points configuration in `pyproject.toml`
+3. Ensure virtual environment is activated
+
+#### Unexpected Template Output
+1. Run in debug mode: `oneenv template -d`
+2. Check for duplicate variables
+3. Verify package versions
+
+#### Performance Issues
+In environments with many packages, processing may take time. Consider creating a dedicated virtual environment for specific package sets.
 
 ## Running Tests 🧪
 

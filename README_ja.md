@@ -1,8 +1,13 @@
-# OneEnv 🌟　[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
+# OneEnv 🌟
 
-OneEnvは、Python アプリケーション向けの**革命的な環境変数管理ツール**です。インストールされた全パッケージから環境変数テンプレートを自動発見し、単一の `.env.example` ファイルに統合します - **手動設定は一切不要**！
+[![PyPI Downloads](https://static.pepy.tech/badge/oneenv)](https://pepy.tech/projects/oneenv)
 
-## OneEnvが開発を劇的に簡単にする理由 🚀
+**Python環境変数管理の新しいスタンダード。**
+
+OneEnvはインストールされた全パッケージから環境変数テンプレートを自動発見し、
+単一の `.env.example` ファイルに統合します。手動設定は一切不要です。
+
+## OneEnvが開発を効率化する理由 🚀
 
 **OneEnv導入前:**
 - 😓 プロジェクトごとに `.env.example` ファイルを手作業で作成
@@ -12,27 +17,28 @@ OneEnvは、Python アプリケーション向けの**革命的な環境変数�
 
 **OneEnv導入後:**
 - ✨ **全パッケージから環境変数を自動発見**
-- 🎯 **1つのコマンド**で完全な `.env.example` ファイルを生成
-- 🔄 **重複変数をスマートにマージ**し、詳細な説明も統合
-- 📦 **プラグインエコシステム**でパッケージが独自テンプレートを提供
+- 🎯 **1つのコマンド** で完全な `.env.example` ファイルを生成
+- 🔄 **重複変数をスマートにマージ** し、詳細な説明も統合
+- 📦 **プラグインエコシステム** でパッケージが独自テンプレートを提供
 - 🛡️ **Pydantic による型安全性**
 
-## 革新的な機能 🌟
+## 主要機能 🌟
 
-### 🔌 **Entry-pointsプラグインシステム**
+### 🔌 **Entry-Points プラグインシステム**
 パッケージが環境変数テンプレートを自動提供 - インストールするだけで使えます！
 
 ### 🎨 **スマートな重複処理**
 複数のパッケージが同じ変数を定義していても、OneEnv が説明を統合し設定の一貫性を保ちます。
 
 ### ⚡ **ゼロ設定セットアップ**
-OneEnv テンプレート対応パッケージをインストール？自動で発見されます。インポートも手動登録も不要。
+OneEnv テンプレート対応パッケージをインストール？自動で発見されます。
+インポートも手動登録も不要。
 
 ### 🔒 **型安全テンプレート**
 Pydantic モデルによる実行時検証とより良いエラーメッセージ。
 
 ### 📋 **レガシーデコレータサポート**
-既存の `@oneenv` デコレータは新しいプラグインシステムと seamlessly 併用可能。
+既存の `@oneenv` デコレータは新しいプラグインシステムと完全互換で併用可能。
 
 ## 対応環境 🖥️
 
@@ -56,6 +62,7 @@ pip install -e .
 ## 超簡単な使い方 🎯
 
 ### ステップ1: OneEnv対応パッケージをインストール
+
 ```bash
 pip install oneenv
 pip install django-oneenv-plugin  # 例: Django テンプレート
@@ -63,31 +70,152 @@ pip install fastapi-oneenv-plugin # 例: FastAPI テンプレート
 ```
 
 ### ステップ2: 環境変数テンプレートを生成
+
 ```bash
 oneenv template
 ```
 
-**これだけ！** 🎉 OneEnv が自動的にインストール済みパッケージから環境変数を発見し、完全な `.env.example` ファイルを作成します。
+**これだけ！** 🎉
+
+OneEnv が自動的にインストール済みパッケージから環境変数を発見し、
+完全な `.env.example` ファイルを作成します。
 
 ## 高度な使い方 🚀
 
 ### 🔍 発見された内容を確認
+
 ```bash
 oneenv template -d
 ```
+
 以下の情報が表示されます：
 - 📦 発見されたプラグイン
 - 🔄 パッケージ間で重複している変数
 - ⚡ テンプレート生成プロセス
 
 ### 📝 カスタム出力ファイル
+
 ```bash
 oneenv template -o my-custom.env
 ```
 
 ### 🔄 環境ファイルの比較
+
 ```bash
 oneenv diff old.env new.env
+```
+
+## 実運用での活用 🔄
+
+### CI/CDでの自動チェック
+
+OneEnvを CI/CD パイプラインに統合することで、環境変数テンプレートの整合性を自動で維持できます。
+
+#### GitHub Actions での例
+
+```yaml
+# .github/workflows/env-check.yml
+name: Environment Template Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-env-template:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install oneenv
+        pip install -r requirements.txt
+    
+    - name: Generate latest .env.example
+      run: oneenv template -o .env.example.new
+    
+    - name: Check for differences
+      run: |
+        if ! diff -q .env.example .env.example.new > /dev/null; then
+          echo "❌ .env.example is outdated!"
+          echo "Run 'oneenv template' to update it."
+          oneenv diff .env.example .env.example.new
+          exit 1
+        else
+          echo "✅ .env.example is up to date!"
+        fi
+```
+
+#### 自動更新ワークフロー
+
+```yaml
+# .github/workflows/env-update.yml
+name: Auto-update Environment Template
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # 毎週月曜日 2:00 AM
+  workflow_dispatch:
+
+jobs:
+  update-env-template:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install oneenv
+        pip install -r requirements.txt
+    
+    - name: Update .env.example
+      run: oneenv template
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update .env.example template"
+        title: "Auto-update environment template"
+        body: |
+          📝 Environment template has been automatically updated.
+          
+          Changes detected in installed packages or their environment variable definitions.
+          Please review the changes before merging.
+        branch: chore/update-env-template
+```
+
+### Docker との連携
+
+```dockerfile
+# Dockerfile
+FROM python:3.10
+
+WORKDIR /app
+
+# 依存関係をインストール
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# OneEnvで環境変数テンプレートを生成
+RUN pip install oneenv && oneenv template
+
+COPY . .
+
+CMD ["python", "app.py"]
 ```
 
 ## パッケージ開発者向け: OneEnvプラグインの作成 📦
@@ -97,6 +225,7 @@ oneenv diff old.env new.env
 自動発見される環境変数テンプレートを作成：
 
 **1. テンプレート関数を作成:**
+
 ```python
 # mypackage/templates.py
 
@@ -145,13 +274,17 @@ def legacy_template():
 ```
 
 **2. pyproject.toml に登録:**
+
 ```toml
 [project.entry-points."oneenv.templates"]
 database = "mypackage.templates:database_template"
 redis = "mypackage.templates:redis_template"
 ```
 
-**3. 完了！** 🎉 ユーザーがあなたのパッケージをインストールすると、OneEnv が自動的にテンプレートを発見します。
+**3. 完了！** 🎉
+
+ユーザーがあなたのパッケージをインストールすると、
+OneEnv が自動的にテンプレートを発見します。
 
 ### 方法2: レガシーデコレータシステム 📋
 
@@ -373,7 +506,7 @@ config = dotenv_values(".env")
 
 ## v0.3.1の新機能 🆕
 
-### 🏗️ **革命的グループ形式**
+### 🏗️ **新しいグループ形式**
 1つの関数で複数のグループを定義でき、テンプレートの整理が非常に柔軟になりました：
 
 ```python
@@ -400,11 +533,11 @@ def complete_webapp_config():
 - **📦 単一ソース**: 1つの関数で関連する全変数を定義
 - **🎯 論理的グループ化**: 変数が自動的に目的別に整理される
 - **🔄 後方互換性**: 従来形式も完全に動作
-- **🚀 Entry-Point フレンドリー**: entry-point登録数を削減
+- **🚀 Entry-Points 最適化**: entry-point登録数を削減
 
 ## 過去のアップデート
 
-### v0.2.0: 革命的プラグインシステム
+### v0.2.0: 新しいプラグインシステム
 - **Entry-points統合**: パッケージが自動的に環境変数テンプレートを提供
 - **スマート重複処理**: 複数パッケージからの変数をインテリジェントにマージ
 - **Pydantic型安全性**: クリアなエラーメッセージ付きの実行時検証
@@ -419,13 +552,92 @@ def complete_webapp_config():
 myfeature = "mypackage.templates:my_template_function"
 ```
 
-## OneEnvがゲームチェンジャーである理由 🎯
+## 他のツールとの比較 📊
+
+| 機能 | OneEnv | python-dotenv | django-environ | pydantic-settings | dynaconf |
+|------|--------|---------------|----------------|-------------------|----------|
+| **自動テンプレート発見** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **プラグインシステム** | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **重複変数の統合** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **型安全性** | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **CI/CD統合** | ✅ | ⚠️ | ⚠️ | ⚠️ | ⚠️ |
+| **設定ファイル生成** | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **フレームワーク依存** | ❌ | ❌ | Django | ❌ | ❌ |
+| **学習コスト** | 低 | 低 | 中 | 中 | 高 |
+| **エコシステム** | 成長中 | 成熟 | 成熟 | 成長中 | 成熟 |
+
+### OneEnv が特に優れている点
+
+- **🔍 完全自動化**: インストールされたパッケージから設定を自動発見
+- **🎯 ゼロ設定**: 手動でのテンプレート作成が不要
+- **🔄 動的更新**: 新しいパッケージの追加時に自動で設定を更新
+- **🤝 エコシステム連携**: パッケージ開発者が設定テンプレートを直接提供可能
+
+## OneEnvの優位性 🎯
 
 - **🚫 探し回らない**: 環境変数が自動的にドキュメント化される
 - **⚡ ゼロセットアップ時間**: パッケージをインストール、1つのコマンド実行、完了
 - **🔄 同期を保つ**: パッケージ更新と共に環境設定も自動更新
 - **👥 チームの調和**: 全員が同じ環境セットアップを取得
 - **📦 エコシステムの成長**: パッケージ作者がより良い設定体験を提供可能
+
+## FAQ・トラブルシュート 🛠️
+
+### よくある質問
+
+#### Q. 特定の環境変数をテンプレートから除外したい
+```python
+# 除外したい変数がある場合は、プラグイン側で条件分岐を使用
+@oneenv
+def my_template():
+    import os
+    if os.getenv('EXCLUDE_SENSITIVE_VARS'):
+        return {}  # 除外する場合は空の辞書を返す
+    
+    return {
+        "SENSITIVE_VAR": {
+            "description": "機密情報",
+            "required": True
+        }
+    }
+```
+
+#### Q. 複数のプロジェクトで異なるテンプレートを使いたい
+各プロジェクトのディレクトリで `oneenv template` を実行すると、そのプロジェクトにインストールされたパッケージに基づいてテンプレートが生成されます。
+
+#### Q. プラグインが発見されない
+```bash
+# インストール済みプラグインを確認
+oneenv template -d
+
+# パッケージが正しくインストールされているか確認
+pip list | grep oneenv
+```
+
+#### Q. Windows PowerShell で文字化けが発生する
+```powershell
+# UTF-8 エンコーディングを設定
+$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
+oneenv template
+```
+
+#### Q. 重複した変数の優先順位を変更したい
+現在、最初に発見されたパッケージの設定が優先されます。優先順位を変更するには、`pyproject.toml` での Entry-Points の登録順序を調整してください。
+
+### トラブルシュート
+
+#### プラグインが見つからない場合
+1. パッケージが正しくインストールされているか確認
+2. `pyproject.toml` の Entry-Points 設定を確認
+3. 仮想環境が正しく有効化されているか確認
+
+#### 生成されたテンプレートが期待と異なる場合
+1. デバッグモードで実行: `oneenv template -d`
+2. 重複している変数を確認
+3. パッケージのバージョンを確認
+
+#### パフォーマンスが遅い場合
+大量のパッケージがインストールされている環境では、処理に時間がかかる場合があります。特定のパッケージのみを対象とする場合は、専用の仮想環境を作成することを推奨します。
 
 ## テストの実行 🧪
 
