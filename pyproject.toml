@@ -1,6 +1,6 @@
 [project]
 name = "oneenv"
-version = "0.3.0"
+version = "0.3.1"
 description = "OneEnv: Environment variable management and generation tool"
 readme = "README.md"
 requires-python = ">=3.10"
