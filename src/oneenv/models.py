@@ -37,6 +37,14 @@ class EnvVarConfig(BaseModel):
         default=None,
         description="List of valid choices for this environment variable"
     )
+    group: Optional[str] = Field(
+        default=None,
+        description="Group name for organizing related environment variables"
+    )
+    importance: Literal["critical", "important", "optional"] = Field(
+        default="important",
+        description="Importance level for sorting (critical, important, optional)"
+    )
     
     @field_validator('description')
     @classmethod
@@ -138,7 +146,9 @@ class TemplateCollection(BaseModel):
                         description=merged_description,
                         default=existing_config.default,  # Keep first source's default
                         required=existing_config.required,  # Keep first source's required
-                        choices=existing_config.choices    # Keep first source's choices
+                        choices=existing_config.choices,    # Keep first source's choices
+                        group=existing_config.group,        # Keep first source's group
+                        importance=existing_config.importance  # Keep first source's importance
                     )
                     
                     merged[var_name]["config"] = merged_config
@@ -169,6 +179,29 @@ class TemplateCollection(BaseModel):
             for var_name, info in merged.items()
             if len(info["sources"]) > 1
         }
+    
+    def get_grouped_variables(self) -> Dict[str, Dict[str, Dict[str, Any]]]:
+        """
+        Get variables organized by importance and group
+        重要度とグループで整理された変数を取得
+        
+        Returns:
+            Dict[importance, Dict[group_name, Dict[var_name, var_info]]]
+        """
+        merged = self.get_merged_variables()
+        grouped = {"critical": {}, "important": {}, "optional": {}}
+        
+        for var_name, var_info in merged.items():
+            config = var_info["config"]
+            importance = config.importance
+            group = config.group or "General"  # Default group for ungrouped variables
+            
+            if group not in grouped[importance]:
+                grouped[importance][group] = {}
+            
+            grouped[importance][group][var_name] = var_info
+        
+        return grouped
     
     def validate_all_templates(self) -> List[str]:
         """
@@ -213,6 +246,12 @@ def env_var_config_to_dict(config: EnvVarConfig) -> Dict[str, Any]:
     
     if config.choices is not None:
         result["choices"] = config.choices
+    
+    if config.group is not None:
+        result["group"] = config.group
+    
+    if config.importance != "important":  # Only include if not default
+        result["importance"] = config.importance
     
     return result
 

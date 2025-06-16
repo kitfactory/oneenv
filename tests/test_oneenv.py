@@ -20,6 +20,9 @@ import oneenv as oneenv_module  # Used to clear the global registry
 @pytest.fixture(autouse=True)
 def clear_registry():
     oneenv_module._TEMPLATE_REGISTRY.clear()
+    # Also clear the enhanced core registry
+    from oneenv.core import _oneenv_core
+    _oneenv_core._legacy_registry.clear()
 
 
 # Define a sample template function for testing
@@ -34,6 +37,37 @@ def sample_template():
             "default": "value",
             "required": True,
             "choices": ["value", "other"]
+        }
+    }
+
+
+# Define sample templates with group and importance for testing
+@oneenv
+def grouped_template():
+    """
+    Returns grouped environment variables for testing.
+    """
+    return {
+        "HIGH_DATABASE_VAR": {
+            "description": "High importance database variable",
+            "default": "db_value",
+            "required": True,
+            "group": "Database",
+            "importance": "high"
+        },
+        "MEDIUM_WEB_VAR": {
+            "description": "Medium importance web variable",
+            "default": "web_value",
+            "required": False,
+            "group": "Web",
+            "importance": "medium"
+        },
+        "LOW_LOG_VAR": {
+            "description": "Low importance logging variable",
+            "default": "log_value",
+            "required": False,
+            "group": "Logging",
+            "importance": "low"
         }
     }
 
@@ -169,6 +203,8 @@ def test_template():
             "required": True
         }
     }
+
+
 
 
 def test_oneenv_decorator():

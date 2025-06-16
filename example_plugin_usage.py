@@ -21,18 +21,24 @@ def django_package():
             "description": "Django用データベース接続URL\n例: postgresql://user:pass@localhost:5432/django_db",
             "default": "sqlite:///django.db",
             "required": True,
-            "choices": None
+            "choices": None,
+            "group": "Database",
+            "importance": "critical"
         },
         "SECRET_KEY": {
             "description": "Djangoのシークレットキー\n本番環境では必ず変更してください",
             "default": "django-insecure-change-me",
-            "required": True
+            "required": True,
+            "group": "Security",
+            "importance": "critical"
         },
         "DEBUG": {
             "description": "Djangoデバッグモード",
             "default": "False",
             "required": False,
-            "choices": ["True", "False"]
+            "choices": ["True", "False"],
+            "group": "Development",
+            "importance": "important"
         }
     }
 
@@ -45,17 +51,23 @@ def fastapi_package():
             "description": "FastAPI application database connection\nSupported: PostgreSQL, MySQL, SQLite",
             "default": "postgresql://user:pass@localhost:5432/fastapi_db", 
             "required": False,  # FastAPIでは必須ではない
-            "choices": None
+            "choices": None,
+            "group": "Database",
+            "importance": "critical"
         },
         "SECRET_KEY": {
             "description": "JWT signing secret for FastAPI",
             "default": "",
-            "required": True
+            "required": True,
+            "group": "Security",
+            "importance": "critical"
         },
         "API_PREFIX": {
             "description": "API path prefix for FastAPI routes",
             "default": "/api/v1",
-            "required": False
+            "required": False,
+            "group": "API",
+            "importance": "important"
         }
     }
 
@@ -67,12 +79,16 @@ def redis_package():
         "REDIS_URL": {
             "description": "Redis接続URL\n例: redis://localhost:6379/0",
             "default": "redis://localhost:6379/0",
-            "required": False
+            "required": False,
+            "group": "Cache",
+            "importance": "important"
         },
         "REDIS_POOL_SIZE": {
             "description": "Redis接続プールサイズ",
             "default": "10",
-            "required": False
+            "required": False,
+            "group": "Cache",
+            "importance": "optional"
         }
     }
 
