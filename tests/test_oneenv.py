@@ -13,6 +13,7 @@ from oneenv import (
     OneEnv,
     collect_templates,
     report_duplicates,
+    env,
 )
 import oneenv as oneenv_module  # Used to clear the global registry
 
@@ -23,6 +24,8 @@ def clear_registry():
     # Also clear the enhanced core registry
     from oneenv.core import _oneenv_core
     _oneenv_core._legacy_registry.clear()
+    # Clear named environments registry
+    oneenv_module._named_environments.clear()
 
 
 # Define a sample template function for testing
@@ -286,4 +289,162 @@ def test_required_field():
     Japanese: required フィールドがテンプレート出力に正しく反映されることをテストします。
     """
     env_content = template()
-    assert "# Required" in env_content 
+    assert "# Required" in env_content
+
+
+def test_named_environment_basic():
+    """
+    Test basic named environment functionality.
+    """
+    # Test common environment (no name)
+    common_env = env()
+    assert common_env.name is None
+    
+    # Test named environment
+    named_env = env("X")
+    assert named_env.name == "X"
+    
+    # Test that same name returns same instance
+    same_env = env("X")
+    assert same_env is named_env
+
+
+def test_named_environment_load_dotenv(tmp_path):
+    """
+    Test loading .env files into named environments.
+    """
+    # Create test .env files
+    common_env_file = tmp_path / "common.env"
+    common_env_file.write_text("TIMEOUT=30\nCOMMON_VAR=common_value\n", encoding="utf-8")
+    
+    x_env_file = tmp_path / "X.env"
+    x_env_file.write_text("API_KEY=x_key\nTIMEOUT=60\n", encoding="utf-8")
+    
+    # Load into different environments
+    common_env = env()
+    x_env = env("X")
+    
+    # Load the files
+    assert common_env.load_dotenv(str(common_env_file)) is True
+    assert x_env.load_dotenv(str(x_env_file)) is True
+    
+    # Test that values are loaded correctly
+    assert common_env.get("TIMEOUT") == "30"
+    assert common_env.get("COMMON_VAR") == "common_value"
+    assert x_env.get("API_KEY") == "x_key"
+    assert x_env.get("TIMEOUT") == "60"
+
+
+def test_named_environment_fallback(tmp_path):
+    """
+    Test that named environments fall back to common environment.
+    """
+    # Create test .env files
+    common_env_file = tmp_path / "common.env"
+    common_env_file.write_text("TIMEOUT=30\nCOMMON_VAR=common_value\n", encoding="utf-8")
+    
+    x_env_file = tmp_path / "X.env"
+    x_env_file.write_text("API_KEY=x_key\n", encoding="utf-8")
+    
+    # Load into environments
+    common_env = env()
+    x_env = env("X")
+    
+    common_env.load_dotenv(str(common_env_file))
+    x_env.load_dotenv(str(x_env_file))
+    
+    # Test fallback behavior
+    assert x_env.get("API_KEY") == "x_key"  # Found in X environment
+    assert x_env.get("TIMEOUT") == "30"     # Falls back to common environment
+    assert x_env.get("COMMON_VAR") == "common_value"  # Falls back to common environment
+    assert x_env.get("NONEXISTENT", "default") == "default"  # Default value
+
+
+def test_named_environment_override(tmp_path):
+    """
+    Test override behavior in named environments.
+    """
+    # Create test .env files
+    env_file = tmp_path / "test.env"
+    env_file.write_text("KEY1=value1\nKEY2=value2\n", encoding="utf-8")
+    
+    test_env = env("test")
+    
+    # Load without override
+    test_env.load_dotenv(str(env_file))
+    assert test_env.get("KEY1") == "value1"
+    
+    # Update file
+    env_file.write_text("KEY1=new_value1\nKEY3=value3\n", encoding="utf-8")
+    
+    # Load without override (should not update existing keys)
+    test_env.load_dotenv(str(env_file), override=False)
+    assert test_env.get("KEY1") == "value1"  # Should not change
+    assert test_env.get("KEY3") == "value3"  # Should be added
+    
+    # Load with override
+    test_env.load_dotenv(str(env_file), override=True)
+    assert test_env.get("KEY1") == "new_value1"  # Should be updated
+    assert test_env.get("KEY2", None) is None  # Should be removed since not in new file
+
+
+def test_named_environment_os_environ_fallback():
+    """
+    Test that environments fall back to OS environment variables.
+    """
+    # Set an OS environment variable
+    os.environ["TEST_OS_VAR"] = "os_value"
+    
+    try:
+        test_env = env("test")
+        
+        # Should fall back to OS environment
+        assert test_env.get("TEST_OS_VAR") == "os_value"
+        assert test_env.get("NONEXISTENT_VAR", "default") == "default"
+        
+    finally:
+        # Clean up
+        if "TEST_OS_VAR" in os.environ:
+            del os.environ["TEST_OS_VAR"]
+
+
+def test_named_environment_load_nonexistent_file():
+    """
+    Test loading from non-existent file returns False.
+    """
+    test_env = env("test")
+    assert test_env.load_dotenv("/nonexistent/file.env") is False
+    assert test_env.load_dotenv(None) is False
+
+
+def test_multiple_named_environments(tmp_path):
+    """
+    Test multiple named environments working independently.
+    """
+    # Create test .env files
+    common_env_file = tmp_path / "common.env"
+    common_env_file.write_text("TIMEOUT=30\n", encoding="utf-8")
+    
+    x_env_file = tmp_path / "X.env"
+    x_env_file.write_text("API_KEY=x_key\n", encoding="utf-8")
+    
+    y_env_file = tmp_path / "Y.env"
+    y_env_file.write_text("API_KEY=y_key\n", encoding="utf-8")
+    
+    # Load into different environments
+    common_env = env()
+    x_env = env("X")
+    y_env = env("Y")
+    
+    common_env.load_dotenv(str(common_env_file))
+    x_env.load_dotenv(str(x_env_file))
+    y_env.load_dotenv(str(y_env_file))
+    
+    # Test that environments are independent
+    assert common_env.get("TIMEOUT") == "30"
+    assert x_env.get("API_KEY") == "x_key"
+    assert y_env.get("API_KEY") == "y_key"
+    
+    # Test fallback to common
+    assert x_env.get("TIMEOUT") == "30"
+    assert y_env.get("TIMEOUT") == "30" 

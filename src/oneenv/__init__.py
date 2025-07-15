@@ -321,4 +321,122 @@ def import_all_modules(package, debug=False):
             except Exception as e:
                 print(f"Error importing module {module_name}: {e}")
     return imported
+
+
+# Named environment system
+class NamedEnvironment:
+    """
+    English: Named environment instance that manages environment variables with namespacing.
+    Japanese: 環境変数を名前空間で管理する名前付き環境インスタンスです。
+    """
+    
+    def __init__(self, name=None):
+        """
+        English: Initialize named environment.
+        Input:
+          - name: Environment name (None for common environment)
+        Japanese: 名前付き環境を初期化します。
+        入力:
+          - name: 環境名（共通環境の場合はNone）
+        """
+        self.name = name
+        self._env_vars = {}
+    
+    def load_dotenv(self, dotenv_path=None, override=False):
+        """
+        English: Load environment variables from a .env file into this named environment.
+        Input:
+          - dotenv_path: Path to the .env file
+          - override: Whether to override existing variables
+        Output:
+          - Returns True if successful
+        Japanese: .envファイルから環境変数をこの名前付き環境に読み込みます。
+        入力:
+          - dotenv_path: .envファイルへのパス
+          - override: 既存の変数を上書きするかどうか
+        出力:
+          - 成功した場合Trueを返します
+        """
+        if dotenv_path is None:
+            return False
+        
+        try:
+            # Check if file exists first
+            if not os.path.exists(dotenv_path):
+                return False
+            
+            env_values = _dotenv_values(dotenv_path=dotenv_path)
+            if env_values is None:
+                return False
+            if override:
+                self._env_vars = env_values.copy()
+            else:
+                for key, value in env_values.items():
+                    if key not in self._env_vars:
+                        self._env_vars[key] = value
+            return True
+        except Exception:
+            return False
+    
+    def get(self, key, default=None):
+        """
+        English: Get environment variable value with fallback logic.
+        For named environments, falls back to common environment if not found.
+        Input:
+          - key: Environment variable name
+          - default: Default value if not found
+        Output:
+          - Environment variable value or default
+        Japanese: 環境変数の値をフォールバック論理で取得します。
+        名前付き環境の場合、見つからなければ共通環境にフォールバックします。
+        入力:
+          - key: 環境変数名
+          - default: 見つからない場合のデフォルト値
+        出力:
+          - 環境変数の値またはデフォルト値
+        """
+        # First check this environment's variables
+        if key in self._env_vars:
+            return self._env_vars[key]
+        
+        # For named environments, fall back to common environment
+        if self.name is not None:
+            common_env = _get_common_environment()
+            if key in common_env._env_vars:
+                return common_env._env_vars[key]
+        
+        # Finally, check OS environment variables
+        return os.environ.get(key, default)
+
+
+# Global registry for named environments
+_named_environments = {}
+
+
+def _get_common_environment():
+    """
+    English: Get or create the common environment instance.
+    Japanese: 共通環境インスタンスを取得または作成します。
+    """
+    if None not in _named_environments:
+        _named_environments[None] = NamedEnvironment(None)
+    return _named_environments[None]
+
+
+def env(name=None):
+    """
+    English: Get or create a named environment instance.
+    Input:
+      - name: Environment name (None for common environment)
+    Output:
+      - NamedEnvironment instance
+    Japanese: 名前付き環境インスタンスを取得または作成します。
+    入力:
+      - name: 環境名（共通環境の場合はNone）
+    出力:
+      - NamedEnvironment インスタンス
+    """
+    if name not in _named_environments:
+        _named_environments[name] = NamedEnvironment(name)
+    return _named_environments[name]
  
