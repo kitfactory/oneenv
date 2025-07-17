@@ -94,7 +94,23 @@ database = "mypackage.templates:database_template"
 
 ## Learn More 📚
 
-For detailed examples and advanced usage, see the [tutorials](docs/tutorials/) directory.
+### Step-by-Step Tutorials
+
+#### 🌱 **Basics** (5-10 min each)
+1. **[Basic dotenv Usage](docs/tutorials/01-basic-dotenv.md)** - Learn environment variable fundamentals and OneEnv basics
+2. **[Auto Template Generation](docs/tutorials/02-template-generation.md)** - Discover how OneEnv automatically finds and generates environment templates  
+3. **[Named Environments](docs/tutorials/03-named-environments.md)** - Master namespace management with intelligent fallback
+
+#### 🚀 **Practical** (10-15 min each)
+4. **[Multi-Service Management](docs/tutorials/04-multi-service.md)** - Configure complex applications with multiple services
+5. **[Custom Templates](docs/tutorials/05-custom-templates.md)** - Create reusable project-specific templates
+6. **[Production Best Practices](docs/tutorials/06-production-tips.md)** - Secure configuration management for production environments
+
+#### ⚡ **Advanced** (15-20 min each)
+7. **[Plugin Development](docs/tutorials/07-plugin-development.md)** - Build distributable OneEnv plugins for the community
+8. **[CI/CD Integration](docs/tutorials/08-cicd-integration.md)** - Automate configuration management in your deployment pipeline
+
+**Start here:** [Step 1: Basic dotenv Usage](docs/tutorials/01-basic-dotenv.md)
 
 ## License ⚖️
 

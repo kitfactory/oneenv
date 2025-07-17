@@ -1,51 +1,59 @@
-# Step 1: 基本的なdotenv使用法
+# Step 1: Basic dotenv Usage
 
-**所要時間:** 5-10分  
-**難易度:** 初級
+**Duration:** 5-10 minutes  
+**Difficulty:** Beginner
 
-## 学習目標
+## Learning Objectives
 
-- 環境変数の基本概念を理解する
-- `.env` ファイルの作成と使用方法を学ぶ
-- OneEnvを使った基本的な環境変数の読み込みを実践する
+- Understand basic environment variable concepts
+- Learn how to create and use `.env` files
+- Practice basic environment variable loading with OneEnv
 
-## 従来の問題点
+## Purpose & Benefits
 
-### 1. ハードコーディングの問題
+**Why this step matters:**
+- **Foundation Building**: Master environment variable fundamentals before advanced features
+- **Best Practices**: Learn secure configuration management from the start  
+- **Immediate Value**: Replace hardcoded values with flexible configuration
+- **Team Collaboration**: Enable consistent development environments across team members
+
+## Traditional Problems
+
+### 1. Hardcoding Issues
 
 ```python
-# 悪い例: 設定がハードコーディング
+# Bad example: hardcoded configuration
 def connect_to_database():
     host = "localhost"
     port = 5432
     database = "myapp"
     username = "admin"
     password = "secret123"
-    # 本番環境では異なる設定が必要...
+    # Different settings needed for production...
 ```
 
-### 2. OS環境変数の問題
+### 2. OS Environment Variable Issues
 
 ```python
 import os
 
-# 設定が散在、管理が困難
+# Scattered settings, difficult to manage
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost:5432/myapp")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 ```
 
-## OneEnvによる解決策
+## OneEnv Solutions
 
-### ステップ1: OneEnvをインストール
+### Step 1: Install OneEnv
 
 ```bash
 pip install oneenv
 ```
 
-### ステップ2: .envファイルを作成
+### Step 2: Create .env file
 
-プロジェクトのルートディレクトリに `.env` ファイルを作成：
+Create a `.env` file in your project root directory:
 
 ```bash
 # .env
@@ -56,17 +64,17 @@ API_KEY=your-api-key
 LOG_LEVEL=INFO
 ```
 
-### ステップ3: OneEnvを使って読み込み
+### Step 3: Load with OneEnv
 
 ```python
 # app.py
 import oneenv
 import os
 
-# 環境変数を読み込み
+# Load environment variables
 oneenv.load_dotenv()
 
-# 設定を取得
+# Get configuration
 database_url = os.getenv("DATABASE_URL")
 secret_key = os.getenv("SECRET_KEY")
 debug = os.getenv("DEBUG", "False").lower() == "true"
@@ -75,17 +83,17 @@ print(f"Database URL: {database_url}")
 print(f"Debug mode: {debug}")
 ```
 
-## 実践演習
+## Practical Exercises
 
-### 演習1: 基本的な設定管理
+### Exercise 1: Basic Configuration Management
 
-1. 新しいディレクトリを作成してください：
+1. Create a new directory:
 ```bash
 mkdir oneenv-tutorial
 cd oneenv-tutorial
 ```
 
-2. `.env` ファイルを作成：
+2. Create `.env` file:
 ```bash
 APP_NAME=My Tutorial App
 PORT=8000
@@ -94,30 +102,30 @@ SECRET_KEY=tutorial-secret-key
 DEBUG=True
 ```
 
-3. Pythonスクリプトを作成（`basic_config.py`）：
+3. Create Python script (`basic_config.py`):
 ```python
 import oneenv
 import os
 
-# 環境変数を読み込み
+# Load environment variables
 oneenv.load_dotenv()
 
-# 設定を表示
-print("=== アプリケーション設定 ===")
-print(f"アプリ名: {os.getenv('APP_NAME')}")
-print(f"ポート: {os.getenv('PORT')}")
-print(f"データベース: {os.getenv('DATABASE_URL')}")
-print(f"デバッグモード: {os.getenv('DEBUG')}")
+# Display configuration
+print("=== Application Configuration ===")
+print(f"App Name: {os.getenv('APP_NAME')}")
+print(f"Port: {os.getenv('PORT')}")
+print(f"Database: {os.getenv('DATABASE_URL')}")
+print(f"Debug Mode: {os.getenv('DEBUG')}")
 ```
 
-4. 実行：
+4. Run:
 ```bash
 python basic_config.py
 ```
 
-### 演習2: デフォルト値の設定
+### Exercise 2: Default Values
 
-設定にデフォルト値を追加してみましょう：
+Add default values to your configuration:
 
 ```python
 # config_with_defaults.py
@@ -126,68 +134,85 @@ import os
 
 oneenv.load_dotenv()
 
-# デフォルト値付きで設定を取得
+# Get configuration with defaults
 app_name = os.getenv("APP_NAME", "Default App")
 port = int(os.getenv("PORT", "3000"))
 debug = os.getenv("DEBUG", "False").lower() == "true"
 log_level = os.getenv("LOG_LEVEL", "INFO")
 
-print("=== 設定（デフォルト値付き） ===")
-print(f"アプリ名: {app_name}")
-print(f"ポート: {port}")
-print(f"デバッグ: {debug}")
-print(f"ログレベル: {log_level}")
+print("=== Configuration with Defaults ===")
+print(f"App Name: {app_name}")
+print(f"Port: {port}")
+print(f"Debug: {debug}")
+print(f"Log Level: {log_level}")
 ```
 
-### 演習3: 辞書として設定を取得
+### Exercise 3: Get Configuration as Dictionary
 
 ```python
 # config_as_dict.py
 import oneenv
 
-# 設定を辞書として取得
+# Get configuration as dictionary
 config = oneenv.dotenv_values()
 
-print("=== 全設定 ===")
+print("=== All Configuration ===")
 for key, value in config.items():
     print(f"{key}: {value}")
 ```
 
-## OneEnvの利点
+## OneEnv Benefits
 
-### 1. 簡潔性
+### 1. Simplicity
 ```python
-# 従来の方法
+# Traditional approach
 from dotenv import load_dotenv
 load_dotenv()
 
-# OneEnvの方法
+# OneEnv approach
 import oneenv
 oneenv.load_dotenv()
 ```
 
-### 2. 型安全性
-OneEnvは将来的に型安全性を提供します（Pydanticサポート）。
+### 2. Type Safety
+OneEnv provides type safety features with Pydantic support in future versions.
 
-### 3. 拡張性
-次のステップで学ぶテンプレート自動生成機能への準備ができます。
+### 3. Extensibility
+Prepares you for the automatic template generation features you'll learn next.
 
-## 次のステップ
+## Key Takeaways
 
-基本的なdotenvの使用方法を学びました。次は、OneEnvの強力な機能である自動テンプレート生成を学びましょう。
+**What you've learned:**
+- ✅ **Environment Variables**: Core concepts and .env file structure
+- ✅ **OneEnv Basics**: Simple loading and configuration access
+- ✅ **Default Values**: Fallback strategies for missing configuration
+- ✅ **Best Practices**: Separation of code and configuration
 
-**→ [Step 2: OneEnvによる自動テンプレート生成](02-template-generation.md)**
+**Why this matters:**
+- **Security**: No hardcoded secrets in source code
+- **Flexibility**: Easy configuration changes without code modification
+- **Team Collaboration**: Consistent development environments
+- **Production Ready**: Foundation for environment-specific configuration
 
-## 参考資料
+## Next Steps
+
+You've mastered basic dotenv usage with OneEnv. Next, discover OneEnv's powerful automatic template generation feature.
+
+**→ [Step 2: Auto Template Generation](02-template-generation.md)**
+
+## Reference Materials
 
 - [python-dotenv documentation](https://github.com/theskumar/python-dotenv)
 - [12-Factor App: Config](https://12factor.net/config)
-- [OneEnv メインドキュメント](../../README_ja.md)
+- [OneEnv Main Documentation](../../README.md)
 
-## よくある質問
+## Frequently Asked Questions
 
-### Q: .envファイルはGitにコミットすべきですか？
-A: いいえ。`.env`ファイルには機密情報が含まれるため、`.gitignore`に追加してください。代わりに`.env.example`をコミットします。
+### Q: Should .env files be committed to Git?
+A: No. `.env` files contain sensitive information and should be added to `.gitignore`. Instead, commit `.env.example` files.
 
-### Q: 環境変数が読み込まれない場合は？
-A: `.env`ファイルがPythonスクリプトと同じディレクトリにあることを確認してください。異なる場所にある場合は、`oneenv.load_dotenv("path/to/.env")`のようにパスを指定できます。
+### Q: What if environment variables aren't loading?
+A: Ensure the `.env` file is in the same directory as your Python script. For different locations, specify the path: `oneenv.load_dotenv("path/to/.env")`.
+
+### Q: How do I handle different environments (dev/staging/prod)?
+A: Use different `.env` files for each environment, which you'll learn more about in the Named Environments tutorial.

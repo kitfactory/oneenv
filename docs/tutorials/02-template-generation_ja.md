@@ -1,0 +1,267 @@
+# Step 2: OneEnvによる自動テンプレート生成
+
+**所要時間:** 5-10分  
+**難易度:** 初級
+
+## 学習目標
+
+- OneEnvの自動テンプレート生成機能を理解する
+- パッケージからの環境変数発見機能を体験する
+- テンプレートフィールドの設定方法を学ぶ
+- デバッグモードでプロセスを確認する
+
+## 従来の問題点
+
+### 手動でのテンプレート作成
+```bash
+# 従来の方法: 手動で .env.example を作成
+echo "DATABASE_URL=postgresql://localhost:5432/mydb" > .env.example
+echo "SECRET_KEY=your-secret-key" >> .env.example
+echo "REDIS_URL=redis://localhost:6379" >> .env.example
+# パッケージごとに必要な変数を調査して手動追加...
+```
+
+## OneEnvによる自動テンプレート生成
+
+### ステップ1: 基本的なテンプレート生成
+
+```bash
+# プロジェクトディレクトリで実行
+oneenv template
+```
+
+### ステップ2: デバッグモードで詳細確認
+
+```bash
+# 発見プロセスを詳細表示
+oneenv template -d
+```
+
+**出力例:**
+```
+=== OneEnv Template Generation (Debug Mode) ===
+🔍 Discovering plugins via entry-points...
+📦 Found plugin: myproject.config -> my_template
+📦 Found plugin: database-lib -> db_template
+
+🔍 Scanning legacy @oneenv decorators...
+📝 Found decorator: custom_app_config
+
+🔄 Processing templates...
+⚠️  Duplicate variable detected: DATABASE_URL
+    - Defined in: myproject.config, database-lib
+    - Using configuration from: myproject.config
+
+✅ Generated template with 8 variables across 3 groups
+```
+
+### ステップ3: カスタム出力ファイル
+
+```bash
+# 異なるファイル名で出力
+oneenv template -o custom.env.example
+```
+
+## 実践演習
+
+### 演習1: プロジェクトテンプレートの作成
+
+1. プロジェクトディレクトリを作成：
+```bash
+mkdir template-tutorial
+cd template-tutorial
+```
+
+2. カスタムテンプレートを作成（`project_config.py`）：
+```python
+from oneenv import oneenv
+
+@oneenv
+def app_template():
+    return {
+        "groups": {
+            "Application": {
+                "APP_NAME": {
+                    "description": "アプリケーション名",
+                    "default": "Tutorial App",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "APP_VERSION": {
+                    "description": "アプリケーションバージョン",
+                    "default": "1.0.0",
+                    "importance": "important"
+                }
+            },
+            "Database": {
+                "DATABASE_URL": {
+                    "description": "データベース接続URL",
+                    "default": "sqlite:///app.db",
+                    "required": True,
+                    "importance": "critical"
+                }
+            },
+            "Settings": {
+                "DEBUG": {
+                    "description": "デバッグモード",
+                    "default": "False",
+                    "choices": ["True", "False"],
+                    "importance": "optional"
+                }
+            }
+        }
+    }
+```
+
+3. テンプレートを実行：
+```python
+# テンプレート登録のためにインポート
+import project_config
+```
+
+4. テンプレート生成：
+```bash
+python -c "import project_config" && oneenv template
+```
+
+### 演習2: 従来形式との混在
+
+従来形式のテンプレートも試してみましょう：
+
+```python
+# legacy_config.py
+from oneenv import oneenv
+
+@oneenv
+def legacy_template():
+    return {
+        "LOG_LEVEL": {
+            "description": "ログレベル設定",
+            "default": "INFO",
+            "choices": ["DEBUG", "INFO", "WARNING", "ERROR"],
+            "group": "Logging",
+            "importance": "optional"
+        },
+        "MAX_WORKERS": {
+            "description": "ワーカー数",
+            "default": "4",
+            "group": "Performance",
+            "importance": "important"
+        }
+    }
+```
+
+## テンプレートフィールドリファレンス
+
+### 基本フィールド（必須）
+- **`description`**: 変数の説明（必須）
+
+### オプションフィールド
+- **`default`**: デフォルト値
+- **`required`**: 必須かどうか（true/false）
+- **`choices`**: 有効な選択肢のリスト
+- **`group`**: グループ名（従来形式用）
+- **`importance`**: 重要度レベル
+
+### 重要度レベル
+- **`critical`**: アプリケーション動作に必須
+- **`important`**: 本番環境で設定すべき項目
+- **`optional`**: 細かい調整設定（デフォルトで十分）
+
+### Groups形式（v0.3.1+）
+```python
+{
+    "groups": {
+        "グループ名": {
+            "VARIABLE_NAME": {
+                "description": "説明",
+                "default": "値",
+                "importance": "critical"
+            }
+        }
+    }
+}
+```
+
+## 生成されるテンプレートの構造
+
+```bash
+# Auto-generated by OneEnv
+
+# ========== CRITICAL: 必須設定項目 ==========
+
+# ----- Application -----
+
+# アプリケーション名
+# Required
+APP_NAME=Tutorial App
+
+# ----- Database -----
+
+# データベース接続URL
+# Required
+DATABASE_URL=sqlite:///app.db
+
+# ========== IMPORTANT: 重要設定項目 ==========
+
+# ----- Performance -----
+
+# ワーカー数
+MAX_WORKERS=4
+
+# ========== OPTIONAL: デフォルトで十分 ==========
+
+# ----- Settings -----
+
+# デバッグモード
+# Choices: True, False
+DEBUG=False
+```
+
+## スマート重複処理
+
+複数のパッケージが同じ変数を定義している場合：
+
+```bash
+# (Defined in: myproject.config, database-lib)
+# myproject.config: アプリケーション用データベースURL
+# database-lib: データベースライブラリ接続設定
+# Required
+DATABASE_URL=sqlite:///app.db
+```
+
+**処理方法:**
+- ✅ **単一エントリ**: 各変数は1回のみ表示
+- 📝 **説明統合**: 全パッケージの説明を統合
+- ⚙️ **最初が優先**: 設定値は最初のパッケージを使用
+- 📋 **ソース表示**: どのパッケージが定義しているかを表示
+
+## CLIオプション詳細
+
+### `-d, --debug`
+発見プロセスとテンプレート生成の詳細を表示
+
+### `-o, --output`
+出力ファイル名を指定（デフォルト: `.env.example`）
+
+```bash
+# 使用例
+oneenv template -d -o my-template.env
+```
+
+## 次のステップ
+
+自動テンプレート生成を学びました。次は、OneEnvの強力な名前空間管理機能を学びましょう。
+
+**→ [Step 3: 名前付き環境の基本](03-named-environments.md)**
+
+## よくある質問
+
+### Q: テンプレートが生成されない場合は？
+A: `oneenv template -d` でデバッグモードを使用し、プラグインが発見されているか確認してください。
+
+### Q: 重複変数の優先順位を変更したい場合は？
+A: 現在は最初に発見されたパッケージが優先されます。pyproject.tomlのentry-points順序で調整可能です。
+
+### Q: カスタムグループ名を使いたい場合は？
+A: groups形式を使用して任意のグループ名を設定できます。

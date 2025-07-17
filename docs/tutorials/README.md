@@ -1,45 +1,45 @@
-# OneEnv チュートリアル
+# OneEnv Tutorials
 
-OneEnvの機能を段階的に学習するためのチュートリアルです。
+Step-by-step tutorials to learn OneEnv features progressively.
 
-## 学習パス
+## Learning Path
 
-### 基礎編 🌱
-1. [Step 1: 基本的なdotenv使用法](01-basic-dotenv.md)
-2. [Step 2: OneEnvによる自動テンプレート生成](02-template-generation.md)
-3. [Step 3: 名前付き環境の基本](03-named-environments.md)
+### Basics 🌱
+1. [Step 1: Basic dotenv Usage](01-basic-dotenv.md)
+2. [Step 2: Auto Template Generation](02-template-generation.md)
+3. [Step 3: Named Environments Basics](03-named-environments.md)
 
-### 実践編 🚀
-4. [Step 4: マルチサービス設定管理](04-multi-service.md)
-5. [Step 5: プロジェクトテンプレートの作成](05-custom-templates.md)
-6. [Step 6: 本番環境でのベストプラクティス](06-production-tips.md)
+### Practical 🚀
+4. [Step 4: Multi-Service Management](04-multi-service.md)
+5. [Step 5: Custom Templates](05-custom-templates.md)
+6. [Step 6: Production Best Practices](06-production-tips.md)
 
-### 高度編 ⚡
-7. [Step 7: プラグインの作成](07-plugin-development.md)
-8. [Step 8: CI/CDとの連携](08-cicd-integration.md)
+### Advanced ⚡
+7. [Step 7: Plugin Development](07-plugin-development.md)
+8. [Step 8: CI/CD Integration](08-cicd-integration.md)
 
-## 必要な環境
+## Requirements
 
-- Python 3.10以上
+- Python 3.10+
 - pip
-- 基本的なコマンドライン操作の知識
+- Basic command-line knowledge
 
-## 各チュートリアルの所要時間
+## Time Estimates
 
-- 基礎編: 各5-10分
-- 実践編: 各10-15分
-- 高度編: 各15-20分
+- Basics: 5-10 minutes each
+- Practical: 10-15 minutes each
+- Advanced: 15-20 minutes each
 
-## サンプルファイル
+## Sample Files
 
-各チュートリアルのサンプルファイルは `examples/` ディレクトリに含まれています。
+Sample files for each tutorial are included in the `examples/` directory.
 
-## 困ったときは
+## Getting Help
 
 - [FAQ](../FAQ.md)
 - [GitHub Issues](https://github.com/your-org/oneenv/issues)
-- [メインドキュメント](../../README_ja.md)
+- [Main Documentation](../../README.md)
 
 ---
 
-**次のステップ:** [Step 1: 基本的なdotenv使用法](01-basic-dotenv.md)から始めましょう！
+**Next Step:** Start with [Step 1: Basic dotenv Usage](01-basic-dotenv.md)!
