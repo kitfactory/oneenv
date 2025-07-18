@@ -301,6 +301,175 @@ def template_function_to_env_template(func_name: str, template_dict: Dict[str, A
     )
 
 
+# Scaffolding System Models
+class EnvOption(BaseModel):
+    """
+    スキャフォールディング用の環境変数オプション
+    カテゴリ内の選択可能オプション（例：VectorStore内のChroma）
+    """
+    category: str = Field(
+        ...,
+        min_length=1,
+        description="カテゴリ名（例：Database, VectorStore, RAG）"
+    )
+    option: str = Field(
+        ...,
+        min_length=1,
+        description="オプション名（例：sqlite, chroma, openai）"
+    )
+    env: Dict[str, EnvVarConfig] = Field(
+        ...,
+        description="このオプション選択時に有効になる環境変数設定"
+    )
+    
+    @field_validator('category')
+    @classmethod
+    def category_must_not_be_empty(cls, v):
+        """Ensure category is not empty after stripping whitespace"""
+        if not v.strip():
+            raise ValueError('Category cannot be empty')
+        return v.strip()
+    
+    @field_validator('option')
+    @classmethod
+    def option_must_not_be_empty(cls, v):
+        """Ensure option is not empty after stripping whitespace"""
+        if not v.strip():
+            raise ValueError('Option cannot be empty')
+        return v.strip()
+    
+    @field_validator('env')
+    @classmethod
+    def env_must_not_be_empty(cls, v):
+        """Option must contain at least one environment variable"""
+        if not v:
+            raise ValueError('Option must contain at least one environment variable')
+        return v
+
+
+def dict_to_env_option(option_dict: Dict[str, Any]) -> EnvOption:
+    """
+    辞書形式の新テンプレートをEnvOptionモデルに変換
+    """
+    # env部分をEnvVarConfigに変換
+    env_configs = {}
+    env_data = option_dict.get("env", {})
+    
+    for var_name, var_config in env_data.items():
+        if isinstance(var_config, dict):
+            env_configs[var_name] = dict_to_env_var_config(var_config)
+        else:
+            raise ValueError(f"Invalid environment variable config for {var_name}")
+    
+    return EnvOption(
+        category=option_dict["category"],
+        option=option_dict["option"],
+        env=env_configs
+    )
+
+
+def env_option_to_dict(env_option: EnvOption) -> Dict[str, Any]:
+    """
+    EnvOptionモデルを辞書形式に変換（後方互換性のため）
+    """
+    env_dict = {}
+    for var_name, var_config in env_option.env.items():
+        env_dict[var_name] = env_var_config_to_dict(var_config)
+    
+    return {
+        "category": env_option.category,
+        "option": env_option.option,
+        "env": env_dict
+    }
+
+
+def validate_scaffolding_format(template_data: Any) -> bool:
+    """
+    Scaffolding形式のテンプレートデータを検証
+    
+    Args:
+        template_data: テンプレート関数から返されたデータ
+        
+    Returns:
+        検証成功時True
+        
+    Raises:
+        ValueError: 不正な形式の場合
+    """
+    # 1. リスト形式必須
+    if not isinstance(template_data, list):
+        raise ValueError("Template must be a list of options")
+    
+    # 2. 空リスト禁止
+    if not template_data:
+        raise ValueError("Template cannot be empty")
+    
+    # 3. 各要素の検証
+    category_option_pairs = set()
+    
+    for i, item in enumerate(template_data):
+        # 辞書形式必須
+        if not isinstance(item, dict):
+            raise ValueError(f"Option {i}: Must be a dictionary")
+        
+        # 必須キー確認
+        required_keys = {"category", "option", "env"}
+        missing_keys = required_keys - set(item.keys())
+        if missing_keys:
+            raise ValueError(f"Option {i}: Missing required keys: {missing_keys}")
+        
+        # カテゴリ/オプション検証
+        category = item["category"]
+        option = item["option"]
+        
+        if not isinstance(category, str) or not category.strip():
+            raise ValueError(f"Option {i}: category must be non-empty string")
+        
+        if not isinstance(option, str) or not option.strip():
+            raise ValueError(f"Option {i}: option must be non-empty string")
+        
+        # 一意性検証
+        pair = (category.strip(), option.strip())
+        if pair in category_option_pairs:
+            raise ValueError(f"Option {i}: Duplicate category/option pair: {category}/{option}")
+        category_option_pairs.add(pair)
+        
+        # env検証
+        env_data = item["env"]
+        if not isinstance(env_data, dict) or not env_data:
+            raise ValueError(f"Option {i}: env must be non-empty dictionary")
+        
+        # env内の各環境変数検証
+        for var_name, var_config in env_data.items():
+            if not isinstance(var_name, str) or not var_name.strip():
+                raise ValueError(f"Option {i}: Environment variable name must be non-empty string")
+            
+            if not isinstance(var_config, dict):
+                raise ValueError(f"Option {i}: Environment variable {var_name} config must be dictionary")
+            
+            # 必須フィールド確認
+            if "description" not in var_config:
+                raise ValueError(f"Option {i}: Environment variable {var_name} missing description")
+    
+    return True
+
+
+def scaffolding_template_function_to_env_options(func_name: str, template_list: List[Dict[str, Any]]) -> List[EnvOption]:
+    """
+    新スキャフォールディング形式のテンプレート関数結果をEnvOptionリストに変換
+    """
+    env_options = []
+    
+    for option_dict in template_list:
+        try:
+            env_option = dict_to_env_option(option_dict)
+            env_options.append(env_option)
+        except Exception as e:
+            raise ValueError(f"Invalid option in template function {func_name}: {str(e)}")
+    
+    return env_options
+
+
 # Example usage and validation
 if __name__ == "__main__":
     # Example environment variable configuration
@@ -312,7 +481,7 @@ if __name__ == "__main__":
     )
     
     print("Example EnvVarConfig:")
-    print(example_config.json(indent=2))
+    print(example_config.model_dump_json(indent=2))
     
     # Example template
     example_template = EnvTemplate(
@@ -329,7 +498,7 @@ if __name__ == "__main__":
     )
     
     print("\nExample EnvTemplate:")
-    print(example_template.json(indent=2))
+    print(example_template.model_dump_json(indent=2))
     
     # Example collection
     collection = TemplateCollection()
@@ -339,3 +508,66 @@ if __name__ == "__main__":
     print("\nMerged variables:")
     for var_name, info in merged.items():
         print(f"  {var_name}: {info['config'].description} (from: {', '.join(info['sources'])})")
+    
+    # Example scaffolding option
+    example_scaffolding_option = EnvOption(
+        category="Database",
+        option="postgres",
+        env={
+            "DATABASE_URL": EnvVarConfig(
+                description="PostgreSQL connection URL",
+                default="postgresql://user:pass@localhost:5432/dbname",
+                required=True
+            ),
+            "DATABASE_POOL_SIZE": EnvVarConfig(
+                description="Connection pool maximum size",
+                default="10",
+                required=False
+            )
+        }
+    )
+    
+    print("\nExample EnvOption:")
+    print(example_scaffolding_option.model_dump_json(indent=2))
+    
+    # Test format validation
+    scaffolding_data = [
+        {
+            "category": "Database",
+            "option": "sqlite",
+            "env": {
+                "DATABASE_URL": {
+                    "description": "SQLite database URL",
+                    "default": "sqlite:///app.db",
+                    "required": True
+                }
+            }
+        }
+    ]
+    
+    print(f"\nFormat validation:")
+    try:
+        validate_scaffolding_format(scaffolding_data)
+        print("✅ Valid scaffolding format")
+    except ValueError as e:
+        print(f"❌ Invalid format: {e}")
+    
+    # Test invalid format
+    invalid_data = {
+        "DATABASE_URL": {
+            "description": "Database connection URL",
+            "default": "sqlite:///app.db"
+        }
+    }
+    
+    try:
+        validate_scaffolding_format(invalid_data)
+        print("❌ Should have failed validation")
+    except ValueError as e:
+        print(f"✅ Correctly rejected invalid format: {e}")
+    
+    # Test scaffolding conversion
+    options = scaffolding_template_function_to_env_options("test_func", scaffolding_data)
+    print(f"\nConverted to {len(options)} EnvOption(s)")
+    for option in options:
+        print(f"  {option.category}/{option.option}: {len(option.env)} env vars")

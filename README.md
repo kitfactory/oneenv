@@ -8,11 +8,17 @@ OneEnv automatically discovers environment variable templates from your installe
 
 ## Core Features 🎯
 
-### 1. Package Environment Variable Discovery 📦
+### 1. 🏗️ Intelligent Scaffolding System
+Organize environment templates by categories (Database, VectorStore, LLM, etc.) with structured discovery and selective generation.
+
+### 2. 📦 Package Environment Variable Discovery
 Automatically collect environment variable templates from all installed packages - no manual configuration required.
 
-### 2. Namespace Management 🏷️
+### 3. 🏷️ Namespace Management
 Organize environment variables by service/component with intelligent fallback.
+
+### 4. 🛠️ Tool-Friendly APIs
+Programmatic access to template structure for building custom scaffolding tools and integrations.
 
 ## Installation 📦
 
@@ -25,6 +31,21 @@ pip install oneenv
 ### Generate Environment Template
 ```bash
 oneenv template
+```
+
+### Explore Available Templates
+```bash
+# View all available categories and options
+oneenv template --structure
+
+# Get detailed info for a specific category
+oneenv template --info Database
+
+# Preview a specific option
+oneenv template --preview Database postgres
+
+# Generate custom configuration
+oneenv template --generate Database:postgres VectorStore:chroma
 ```
 
 ### Use Named Environments
@@ -66,24 +87,105 @@ api_key = oneenv.env("api").get("KEY")
 2. **Generation**: Creates consolidated `.env.example` files
 3. **Namespace**: Loads variables into separate namespaces with fallback to common settings
 
-## For Package Developers 📦
+## Advanced Usage: Scaffolding System 🏗️
 
-Create templates that users automatically discover:
+OneEnv's intelligent scaffolding system organizes templates by categories and provides powerful APIs for custom tool development:
+
+### Interactive Template Discovery
+```bash
+# Discover available templates
+oneenv template --structure
+
+# Get category details with variable counts
+oneenv template --info Database
+
+# Preview what variables an option provides
+oneenv template --preview Database postgres
+
+# Generate templates with specific selections
+oneenv template --generate Database:postgres VectorStore:chroma LLM:openai
+
+# JSON output for automation
+oneenv template --structure --json
+```
+
+### Programmatic API for Custom Tools 🛠️
+
+Build sophisticated scaffolding tools using OneEnv's comprehensive APIs:
+
+```python
+import oneenv
+
+# Discovery API
+structure = oneenv.get_all_template_structure()
+print("Available categories:", list(structure.keys()))
+# Output: {'Database': ['postgres', 'sqlite'], 'VectorStore': ['chroma', 'pinecone']}
+
+# Validation API
+if oneenv.has_category("Database"):
+    options = oneenv.get_options("Database")
+    print(f"Database options: {options}")
+
+# Information API
+info = oneenv.get_category_info("Database")
+print(f"Total variables: {info['total_variables']}")
+print(f"Critical variables: {info['critical_variables']}")
+
+# Preview API
+preview = oneenv.get_option_preview("Database", "postgres")
+for var_name, config in preview['variables'].items():
+    print(f"{var_name}: {config['importance']} - {config['description']}")
+
+# Generation API
+selections = [
+    {"category": "Database", "option": "postgres"},
+    {"category": "VectorStore", "option": "chroma"},
+    {"category": "LLM", "option": "openai"}
+]
+
+content = oneenv.generate_template(".env.example", selections)
+print("Generated custom template with selected components!")
+```
+
+### Create Package Templates 📦
+
+Developers can create discoverable templates using the new scaffolding format:
 
 ```python
 # mypackage/templates.py
 def database_template():
-    return {
-        "groups": {
-            "Database": {
+    return [
+        {
+            "category": "Database",
+            "option": "postgres",
+            "env": {
                 "DATABASE_URL": {
-                    "description": "Database connection URL",
+                    "description": "PostgreSQL connection URL",
+                    "default": "postgresql://user:pass@localhost:5432/dbname",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "DATABASE_POOL_SIZE": {
+                    "description": "Connection pool size",
+                    "default": "10",
+                    "required": False,
+                    "importance": "important"
+                }
+            }
+        },
+        {
+            "category": "Database",
+            "option": "sqlite",
+            "env": {
+                "DATABASE_URL": {
+                    "description": "SQLite database file path",
                     "default": "sqlite:///app.db",
-                    "required": True
+                    "required": True,
+                    "importance": "critical"
                 }
             }
         }
-    }
+    ]
 ```
 
 Register in `pyproject.toml`:
@@ -91,6 +193,12 @@ Register in `pyproject.toml`:
 [project.entry-points."oneenv.templates"]
 database = "mypackage.templates:database_template"
 ```
+
+**Key Features:**
+- **Category-based organization** - Group related templates (Database, VectorStore, LLM, etc.)
+- **Multiple options per category** - Provide alternatives (postgres, sqlite, mysql)
+- **Importance levels** - Critical, Important, Optional for better user guidance
+- **Automatic discovery** - Users automatically see your templates with `oneenv template --structure`
 
 ## Learn More 📚
 
@@ -109,6 +217,15 @@ database = "mypackage.templates:database_template"
 #### ⚡ **Advanced** (15-20 min each)
 7. **[Plugin Development](docs/tutorials/07-plugin-development.md)** - Build distributable OneEnv plugins for the community
 8. **[CI/CD Integration](docs/tutorials/08-cicd-integration.md)** - Automate configuration management in your deployment pipeline
+
+#### 🚀 **New Scaffolding Features** (10-20 min each)
+9. **[New Template Creation](docs/tutorials/09-new-template-creation.md)** - Create discoverable templates using the new scaffolding format
+10. **[Scaffolding Tool Creation](docs/tutorials/10-scaffolding-tool-creation.md)** - Build custom scaffolding tools with OneEnv's APIs
+11. **[Practical Guide](docs/tutorials/11-practical-guide.md)** - Real-world examples for RAG systems, web apps, and more
+
+### 📚 **Documentation**
+- **[Scaffolding Usage Guide](docs/user-guides/scaffolding-usage.md)** - Comprehensive guide to the scaffolding system
+- **[API Reference](docs/api-reference/scaffolding-api.md)** - Complete API documentation for custom tool development
 
 **Start here:** [Step 1: Basic dotenv Usage](docs/tutorials/01-basic-dotenv.md)
 

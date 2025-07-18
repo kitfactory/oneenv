@@ -16,7 +16,20 @@ from .core import (
     collect_templates_enhanced, 
     report_duplicates_enhanced,
     oneenv as oneenv_decorator_enhanced,
-    _oneenv_core
+    _oneenv_core,
+    # New Scaffolding API
+    get_all_template_structure,
+    has_category,
+    get_options,
+    generate_template
+)
+
+# Import info API for advanced usage
+from .info_api import (
+    get_structure_info,
+    get_category_info, 
+    get_option_preview,
+    get_detailed_structure
 )
 
 # Global registry for template functions  # English: Global registry for storing functions decorated with @oneenv.

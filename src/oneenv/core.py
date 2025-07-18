@@ -21,9 +21,13 @@ try:
         EnvVarConfig, 
         EnvTemplate, 
         TemplateCollection,
+        EnvOption,
         dict_to_env_var_config,
         env_var_config_to_dict,
-        template_function_to_env_template
+        template_function_to_env_template,
+        validate_scaffolding_format,
+        scaffolding_template_function_to_env_options,
+        env_var_config_to_dict
     )
 except ImportError:
     # Fallback for development/testing
@@ -34,9 +38,13 @@ except ImportError:
         EnvVarConfig, 
         EnvTemplate, 
         TemplateCollection,
+        EnvOption,
         dict_to_env_var_config,
         env_var_config_to_dict,
-        template_function_to_env_template
+        template_function_to_env_template,
+        validate_scaffolding_format,
+        scaffolding_template_function_to_env_options,
+        env_var_config_to_dict
     )
 
 
@@ -389,3 +397,442 @@ def get_template_registry() -> List[Callable]:
 def clear_template_registry() -> None:
     """Clear the legacy template function registry (useful for testing)"""
     _oneenv_core._legacy_registry.clear()
+
+
+# ==========================================
+# Scaffolding API Implementation
+# ==========================================
+
+class ScaffoldingTemplateProcessor:
+    """
+    Scaffolding形式専用のテンプレート処理
+    """
+    
+    def __init__(self, entry_point_group: str = "oneenv.templates"):
+        self.entry_point_group = entry_point_group
+        self.env_options: List[EnvOption] = []
+    
+    def load_all_scaffolding_templates(self, debug: bool = False) -> None:
+        """
+        インストールされた全パッケージからScaffolding形式テンプレートを読み込み
+        """
+        self.env_options.clear()
+        
+        try:
+            template_eps = entry_points(group=self.entry_point_group)
+            
+            for ep in template_eps:
+                try:
+                    # Load the entry-point function
+                    template_func = ep.load()
+                    
+                    # Call the function to get template data
+                    template_data = template_func()
+                    
+                    # Scaffolding形式のみ受け入れ
+                    validate_scaffolding_format(template_data)
+                    
+                    # EnvOptionリストに変換
+                    options = scaffolding_template_function_to_env_options(ep.name, template_data)
+                    self.env_options.extend(options)
+                    
+                    if debug:
+                        print(f"✅ Loaded scaffolding template: {ep.name} ({len(options)} options)")
+                        
+                except Exception as e:
+                    # 不正な形式は無視（ログ出力）
+                    if debug:
+                        print(f"⚠️  Skipping invalid template {ep.name}: {e}")
+                        
+        except Exception as e:
+            if debug:
+                print(f"❌ Error discovering template plugins: {e}")
+    
+    def get_template_structure(self) -> Dict[str, List[str]]:
+        """
+        カテゴリ別オプション構造を返却
+        """
+        structure = {}
+        
+        for option in self.env_options:
+            category = option.category
+            if category not in structure:
+                structure[category] = []
+            
+            if option.option not in structure[category]:
+                structure[category].append(option.option)
+        
+        # オプションをソート
+        for category in structure:
+            structure[category].sort()
+        
+        return structure
+    
+    def has_category(self, category: str) -> bool:
+        """
+        指定カテゴリの存在確認
+        """
+        return any(option.category == category for option in self.env_options)
+    
+    def get_options(self, category: str) -> List[str]:
+        """
+        カテゴリ内の全オプション取得
+        """
+        options = []
+        for option in self.env_options:
+            if option.category == category and option.option not in options:
+                options.append(option.option)
+        return sorted(options)
+    
+    def generate_by_selection(self, generation_range: List[Dict[str, str]]) -> Dict[str, Dict[str, Any]]:
+        """
+        選択範囲に基づいて環境変数を生成
+        
+        Returns:
+            {
+                "var_name": {
+                    "config": EnvVarConfig,
+                    "category": str,
+                    "option": str
+                }
+            }
+        """
+        selected_vars = {}
+        
+        for selection in generation_range:
+            category = selection["category"]
+            option = selection.get("option")  # None = 全オプション
+            
+            for env_option in self.env_options:
+                if env_option.category == category:
+                    if option is None or env_option.option == option:
+                        # 環境変数追加
+                        for var_name, var_config in env_option.env.items():
+                            # 同じ変数名が複数のオプションで定義されている場合、
+                            # オプション名をプレフィックスとして追加
+                            if option is None:  # 全オプション選択の場合
+                                unique_var_name = f"{env_option.option.upper()}_{var_name}"
+                            else:
+                                unique_var_name = var_name
+                            
+                            selected_vars[unique_var_name] = {
+                                "config": var_config,
+                                "category": env_option.category,
+                                "option": env_option.option
+                            }
+        
+        return selected_vars
+
+
+# Global scaffolding processor instance
+_scaffolding_processor = ScaffoldingTemplateProcessor()
+
+
+def get_all_template_structure() -> Dict[str, List[str]]:
+    """
+    全テンプレート構造をカテゴリ別オプション一覧で返却
+    
+    Returns:
+        カテゴリ名をキー、オプション名のリストを値とする辞書
+        
+    Example:
+        {
+            "Database": ["sqlite", "postgres", "mysql"],
+            "VectorStore": ["chroma", "weaviate", "pinecone"],
+            "LLM": ["openai", "anthropic", "ollama"]
+        }
+    
+    Raises:
+        ImportError: entry-pointsの読み込みに失敗した場合
+        ValueError: 不正なScaffolding形式テンプレートが見つかった場合
+    """
+    # テンプレートが既に読み込まれていない場合のみ読み込み
+    if not _scaffolding_processor.env_options:
+        _scaffolding_processor.load_all_scaffolding_templates()
+    return _scaffolding_processor.get_template_structure()
+
+
+def has_category(category: str) -> bool:
+    """
+    指定されたカテゴリが利用可能かどうかを確認
+    
+    Args:
+        category: 確認するカテゴリ名（例: "Database", "VectorStore"）
+        
+    Returns:
+        カテゴリが存在する場合True、存在しない場合False
+        
+    Example:
+        >>> has_category("Database")
+        True
+        >>> has_category("NonExistent")
+        False
+    
+    Raises:
+        TypeError: categoryが文字列でない場合
+        ValueError: categoryが空文字列の場合
+    """
+    if not isinstance(category, str):
+        raise TypeError(f"Category must be string, got {type(category)}")
+    
+    if not category.strip():
+        raise ValueError("Category cannot be empty")
+    
+    # テンプレートが既に読み込まれていない場合のみ読み込み
+    if not _scaffolding_processor.env_options:
+        _scaffolding_processor.load_all_scaffolding_templates()
+    return _scaffolding_processor.has_category(category.strip())
+
+
+def get_options(category: str) -> List[str]:
+    """
+    指定されたカテゴリ内の全オプション名を取得
+    
+    Args:
+        category: 対象カテゴリ名（例: "Database"）
+        
+    Returns:
+        オプション名のリスト（カテゴリが存在しない場合は空リスト）
+        
+    Example:
+        >>> get_options("Database")
+        ["sqlite", "postgres", "mysql"]
+        >>> get_options("NonExistent")
+        []
+    
+    Raises:
+        TypeError: categoryが文字列でない場合
+        ValueError: categoryが空文字列の場合または存在しないカテゴリの場合
+    """
+    if not isinstance(category, str):
+        raise TypeError(f"Category must be string, got {type(category)}")
+    
+    if not category.strip():
+        raise ValueError("Category cannot be empty")
+    
+    # テンプレートが既に読み込まれていない場合のみ読み込み
+    if not _scaffolding_processor.env_options:
+        _scaffolding_processor.load_all_scaffolding_templates()
+    
+    # カテゴリが存在しない場合、利用可能なカテゴリを提案
+    if not _scaffolding_processor.has_category(category.strip()):
+        available_categories = list(_scaffolding_processor.get_template_structure().keys())
+        if available_categories:
+            raise ValueError(f"Category '{category}' not found. Available categories: {', '.join(sorted(available_categories))}")
+        else:
+            raise ValueError(f"Category '{category}' not found. No scaffolding templates are currently available.")
+    
+    return _scaffolding_processor.get_options(category.strip())
+
+
+def generate_env_file_content(variables: Dict[str, Dict[str, Any]]) -> str:
+    """
+    環境変数辞書から.envファイル内容を生成
+    重要度（critical/important/optional）とカテゴリ/オプション別に分類
+    
+    Args:
+        variables: {
+            "var_name": {
+                "config": EnvVarConfig,
+                "category": str, 
+                "option": str
+            }
+        }
+    """
+    lines = []
+    
+    # 重要度別にグループ化
+    importance_groups = {"critical": {}, "important": {}, "optional": {}}
+    
+    for var_name, var_info in variables.items():
+        config = var_info["config"]
+        category = var_info.get("category", "General")
+        option = var_info.get("option", "default")
+        
+        # 重要度を取得（デフォルトは"important"）
+        importance = getattr(config, 'importance', 'important')
+        
+        # カテゴリ/オプション別のキー
+        key = f"{category} ({option})"
+        
+        if key not in importance_groups[importance]:
+            importance_groups[importance][key] = []
+        importance_groups[importance][key].append((var_name, var_info))
+    
+    # 重要度レベル別に出力
+    importance_levels = ["critical", "important", "optional"]
+    
+    for importance in importance_levels:
+        if not importance_groups[importance]:
+            continue
+            
+        # 重要度セクションヘッダー
+        if importance == "critical":
+            lines.append("# ========== CRITICAL: Essential Settings for Application Operation ==========")
+        elif importance == "important":
+            lines.append("# ========== IMPORTANT: Settings to Configure for Production Use ==========")
+        else:  # optional
+            lines.append("# ========== OPTIONAL: Fine-tuning Settings (Defaults are Sufficient) ==========")
+        lines.append("")
+        
+        # カテゴリ/オプション別に出力
+        for group_name, group_vars in sorted(importance_groups[importance].items()):
+            lines.append(f"# ----- {group_name} -----")
+            lines.append("")
+            
+            for var_name, var_info in sorted(group_vars):
+                config = var_info["config"]
+                
+                # コメント行（説明）
+                if hasattr(config, 'description') and config.description:
+                    lines.append(f"# {config.description}")
+                
+                # 必須マーカー
+                if hasattr(config, 'required') and config.required:
+                    lines.append("# Required")
+                
+                # 選択肢
+                if hasattr(config, 'choices') and config.choices:
+                    lines.append(f"# Choices: {', '.join(config.choices)}")
+                
+                # 変数行
+                default_value = getattr(config, 'default', '')
+                lines.append(f"{var_name}={default_value}")
+                lines.append("")
+            
+            lines.append("")  # グループ間の空行
+    
+    return "\n".join(lines)
+
+
+def generate_template(dest: str, generation_range: List[Dict[str, str]]) -> str:
+    """
+    指定された選択範囲に基づいて.envテンプレートファイルを生成
+    
+    Args:
+        dest: 出力先ファイルパス（空文字列の場合はファイル出力なし）
+        generation_range: 生成範囲指定のリスト
+            [
+                {"category": "Database", "option": "postgres"},     # 特定オプション
+                {"category": "VectorStore", "option": "chroma"},    # 特定オプション  
+                {"category": "LLM"}                                 # 全オプション
+            ]
+    
+    Returns:
+        生成された.envファイルの内容（文字列）
+    
+    Raises:
+        TypeError: 引数の型が不正な場合
+        ValueError: generation_rangeの形式が不正な場合
+        FileNotFoundError: destの親ディレクトリが存在しない場合
+        PermissionError: destファイルに書き込み権限がない場合
+    """
+    # 引数検証
+    if not isinstance(dest, str):
+        raise TypeError(f"dest must be string, got {type(dest)}")
+    
+    if not isinstance(generation_range, list):
+        raise TypeError(f"generation_range must be list, got {type(generation_range)}")
+    
+    # generation_range形式検証
+    for i, selection in enumerate(generation_range):
+        if not isinstance(selection, dict):
+            raise ValueError(f"generation_range[{i}] must be dict, got {type(selection)}. Expected format: {{\"category\": \"CategoryName\", \"option\": \"OptionName\"}}")
+        
+        if "category" not in selection:
+            raise ValueError(f"generation_range[{i}] missing required key 'category'. Expected format: {{\"category\": \"CategoryName\", \"option\": \"OptionName\"}}")
+        
+        if not isinstance(selection["category"], str) or not selection["category"].strip():
+            raise ValueError(f"generation_range[{i}]['category'] must be non-empty string")
+        
+        if "option" in selection:
+            if not isinstance(selection["option"], str) or not selection["option"].strip():
+                raise ValueError(f"generation_range[{i}]['option'] must be non-empty string if provided")
+    
+    # テンプレート読み込み・生成
+    # テンプレートが既に読み込まれていない場合のみ読み込み
+    if not _scaffolding_processor.env_options:
+        _scaffolding_processor.load_all_scaffolding_templates()
+    
+    # カテゴリ存在チェック
+    available_categories = list(_scaffolding_processor.get_template_structure().keys())
+    for i, selection in enumerate(generation_range):
+        category = selection["category"].strip()
+        if not _scaffolding_processor.has_category(category):
+            if available_categories:
+                raise ValueError(f"generation_range[{i}]: Category '{category}' not found. Available categories: {', '.join(sorted(available_categories))}")
+            else:
+                raise ValueError(f"generation_range[{i}]: Category '{category}' not found. No scaffolding templates are currently available.")
+    
+    selected_vars = _scaffolding_processor.generate_by_selection(generation_range)
+    
+    # .envファイル内容生成
+    env_content = generate_env_file_content(selected_vars)
+    
+    # ファイル出力
+    if dest.strip():
+        try:
+            # 親ディレクトリの存在確認
+            import os
+            parent_dir = os.path.dirname(dest)
+            if parent_dir and not os.path.exists(parent_dir):
+                raise FileNotFoundError(f"Parent directory does not exist: {parent_dir}")
+            
+            with open(dest, 'w', encoding='utf-8') as f:
+                f.write(env_content)
+        except (IOError, OSError) as e:
+            raise PermissionError(f"Cannot write to file {dest}: {e}")
+    
+    return env_content
+
+
+def collect_all_options(debug: bool = False) -> Dict[str, Dict[str, Any]]:
+    """
+    Collect all available options from scaffolding templates organized by category
+    
+    Args:
+        debug: Enable debug output
+        
+    Returns:
+        Dictionary mapping category names to their options
+        {
+            "Database": {
+                "POSTGRES_HOST": {
+                    "description": "PostgreSQL server host",
+                    "default": "localhost",
+                    "required": True,
+                    "importance": "critical"
+                },
+                ...
+            },
+            ...
+        }
+    """
+    # Load scaffolding templates if not already loaded
+    if not _scaffolding_processor.env_options:
+        _scaffolding_processor.load_all_scaffolding_templates(debug=debug)
+    
+    # Organize by category
+    categories = {}
+    
+    for option in _scaffolding_processor.env_options:
+        category = option.category
+        if category not in categories:
+            categories[category] = {}
+        
+        # Add all environment variables from this option
+        for var_name, var_config in option.env.items():
+            # Convert EnvVarConfig to dictionary for compatibility
+            config_dict = {
+                "description": var_config.description,
+                "default": var_config.default,
+                "required": var_config.required,
+                "importance": var_config.importance
+            }
+            
+            if var_config.choices:
+                config_dict["choices"] = var_config.choices
+            
+            categories[category][var_name] = config_dict
+    
+    return categories

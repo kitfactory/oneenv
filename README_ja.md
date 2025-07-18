@@ -8,11 +8,17 @@ OneEnvはインストールされたパッケージから環境変数テンプ�
 
 ## 中核機能 🎯
 
-### 1. パッケージ環境変数発見 📦
+### 1. 🏗️ インテリジェントスキャフォールディングシステム
+環境変数テンプレートをカテゴリ別（Database、VectorStore、LLMなど）に整理し、構造化された発見と選択的生成を提供。
+
+### 2. 📦 パッケージ環境変数発見
 インストールされた全パッケージから環境変数テンプレートを自動収集 - 手動設定不要。
 
-### 2. 名前空間管理 🏷️
+### 3. 🏷️ 名前空間管理
 サービス/コンポーネント別に環境変数を整理し、インテリジェントなフォールバック機能。
+
+### 4. 🛠️ ツール対応API
+カスタムスキャフォールディングツールや統合開発のためのテンプレート構造へのプログラマティックアクセス。
 
 ## インストール 📦
 
@@ -25,6 +31,21 @@ pip install oneenv
 ### 環境変数テンプレート生成
 ```bash
 oneenv template
+```
+
+### 利用可能なテンプレートの探索
+```bash
+# 利用可能な全カテゴリとオプションを表示
+oneenv template --structure
+
+# 特定カテゴリの詳細情報を取得
+oneenv template --info Database
+
+# 特定オプションをプレビュー
+oneenv template --preview Database postgres
+
+# カスタム設定を生成
+oneenv template --generate Database:postgres VectorStore:chroma
 ```
 
 ### 名前付き環境の使用
@@ -66,24 +87,105 @@ api_key = oneenv.env("api").get("KEY")
 2. **生成**: 統合された`.env.example`ファイルを作成
 3. **名前空間**: 変数を別々の名前空間にロードし、共通設定にフォールバック
 
-## パッケージ開発者向け 📦
+## 高度な使用法: スキャフォールディングシステム 🏗️
 
-ユーザーが自動で発見できるテンプレートを作成:
+OneEnvのインテリジェントスキャフォールディングシステムは、テンプレートをカテゴリ別に整理し、カスタムツール開発のための強力なAPIを提供します:
+
+### インタラクティブなテンプレート発見
+```bash
+# 利用可能なテンプレートを発見
+oneenv template --structure
+
+# 変数数を含むカテゴリ詳細を取得
+oneenv template --info Database
+
+# オプションが提供する変数をプレビュー
+oneenv template --preview Database postgres
+
+# 特定の選択でテンプレート生成
+oneenv template --generate Database:postgres VectorStore:chroma LLM:openai
+
+# 自動化用JSON出力
+oneenv template --structure --json
+```
+
+### カスタムツール用プログラマティックAPI 🛠️
+
+OneEnvの包括的なAPIを使用して高度なスキャフォールディングツールを構築:
+
+```python
+import oneenv
+
+# 発見API
+structure = oneenv.get_all_template_structure()
+print("利用可能なカテゴリ:", list(structure.keys()))
+# 出力: {'Database': ['postgres', 'sqlite'], 'VectorStore': ['chroma', 'pinecone']}
+
+# 検証API
+if oneenv.has_category("Database"):
+    options = oneenv.get_options("Database")
+    print(f"Databaseオプション: {options}")
+
+# 情報API
+info = oneenv.get_category_info("Database")
+print(f"総変数数: {info['total_variables']}")
+print(f"Critical変数数: {info['critical_variables']}")
+
+# プレビューAPI
+preview = oneenv.get_option_preview("Database", "postgres")
+for var_name, config in preview['variables'].items():
+    print(f"{var_name}: {config['importance']} - {config['description']}")
+
+# 生成API
+selections = [
+    {"category": "Database", "option": "postgres"},
+    {"category": "VectorStore", "option": "chroma"},
+    {"category": "LLM", "option": "openai"}
+]
+
+content = oneenv.generate_template(".env.example", selections)
+print("選択されたコンポーネントでカスタムテンプレートを生成しました！")
+```
+
+### パッケージテンプレートの作成 📦
+
+開発者は新しいスキャフォールディング形式を使用して発見可能なテンプレートを作成できます:
 
 ```python
 # mypackage/templates.py
 def database_template():
-    return {
-        "groups": {
-            "Database": {
+    return [
+        {
+            "category": "Database",
+            "option": "postgres",
+            "env": {
                 "DATABASE_URL": {
-                    "description": "データベース接続URL",
+                    "description": "PostgreSQL接続URL",
+                    "default": "postgresql://user:pass@localhost:5432/dbname",
+                    "required": True,
+                    "importance": "critical"
+                },
+                "DATABASE_POOL_SIZE": {
+                    "description": "接続プールサイズ",
+                    "default": "10",
+                    "required": False,
+                    "importance": "important"
+                }
+            }
+        },
+        {
+            "category": "Database",
+            "option": "sqlite",
+            "env": {
+                "DATABASE_URL": {
+                    "description": "SQLiteデータベースファイルパス",
                     "default": "sqlite:///app.db",
-                    "required": True
+                    "required": True,
+                    "importance": "critical"
                 }
             }
         }
-    }
+    ]
 ```
 
 `pyproject.toml`に登録:
@@ -91,6 +193,12 @@ def database_template():
 [project.entry-points."oneenv.templates"]
 database = "mypackage.templates:database_template"
 ```
+
+**主要機能:**
+- **カテゴリベースの整理** - 関連テンプレートをグループ化（Database、VectorStore、LLMなど）
+- **カテゴリごとの複数オプション** - 代替案を提供（postgres、sqlite、mysql）
+- **重要度レベル** - より良いユーザーガイダンスのためのCritical、Important、Optional
+- **自動発見** - ユーザーは`oneenv template --structure`で自動的にテンプレートを確認可能
 
 ## 詳細情報 📚
 
@@ -109,6 +217,15 @@ database = "mypackage.templates:database_template"
 #### ⚡ **高度編** (各15-20分)
 7. **[プラグインの作成](docs/tutorials/07-plugin-development_ja.md)** - コミュニティで配布可能なOneEnvプラグインの開発
 8. **[CI/CDとの連携](docs/tutorials/08-cicd-integration_ja.md)** - デプロイメントパイプラインでの設定管理自動化
+
+#### 🚀 **新しいスキャフォールディング機能** (各10-20分)
+9. **[新しいテンプレート作成](docs/tutorials/09-new-template-creation_ja.md)** - 新しいスキャフォールディング形式を使用した発見可能なテンプレート作成
+10. **[スキャフォールディングツール作成](docs/tutorials/10-scaffolding-tool-creation_ja.md)** - OneEnvのAPIを使用したカスタムスキャフォールディングツール構築
+11. **[実践ガイド](docs/tutorials/11-practical-guide_ja.md)** - RAGシステム、Webアプリなどの実例
+
+### 📚 **ドキュメント**
+- **[スキャフォールディング使用ガイド](docs/user-guides/scaffolding-usage_ja.md)** - スキャフォールディングシステムの包括的なガイド
+- **[APIリファレンス](docs/api-reference/scaffolding-api_ja.md)** - カスタムツール開発のための完全なAPIドキュメント
 
 **ここから開始:** [Step 1: 基本的なdotenv使用法](docs/tutorials/01-basic-dotenv_ja.md)
 
